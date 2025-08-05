@@ -1,3 +1,413 @@
 <!-- Forzar deploy GitHub Pages: actualización menor 2025-08-05 -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Escolar Dinámico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f8fa; /* Un fondo muy claro */
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+        }
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            /* La separación se hará con bordes */
+            gap: 0;
+            background-color: #e5e7eb; /* Color de las líneas de separación */
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .day-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: #f8fafc; /* Fondo de la columna */
+            padding: 12px;
+            border-right: 1px solid #e5e7eb; /* Línea de separación vertical */
+        }
+        .day-column:last-child {
+            border-right: none;
+        }
+        .day-header {
+            padding: 12px;
+            text-align: center;
+            font-weight: 800; /* Extrabold */
+            font-size: 1.125rem; /* text-lg */
+            color: #1f2937;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Sombra sutil */
+            border-bottom: 4px solid; /* Borde de color más grueso */
+        }
+        .day-header-0 { border-color: #3b82f6; }
+        .day-header-1 { border-color: #10b981; }
+        .day-header-2 { border-color: #f59e0b; }
+        .day-header-3 { border-color: #ef4444; }
+        .day-header-4 { border-color: #8b5cf6; }
 
+        .class-block {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6; /* Línea fina de separación entre bloques */
+        }
+        .class-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+        }
+        .color-pink { border-left: 4px solid #ec4899; }
+        .color-green { border-left: 4px solid #22c55e; }
+        .color-blue { border-left: 4px solid #3b82f6; }
+        .color-purple { border-left: 4px solid #8b5cf6; }
+        .color-amber { border-left: 4px solid #f59e0b; }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #9ca3af;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s;
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            border-radius: 9999px;
+        }
+        .class-block:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { color: #ef4444; background-color: #fee2e2; }
+
+        .add-block-btn {
+            width: 100%;
+            border: 2px dashed #d1d5db;
+            color: #6b7280;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .add-block-btn:hover { background-color: #f9fafb; border-color: #9ca3af; color: #4b5563; }
+
+        .modal-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 40;
+            display: grid;
+            place-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        @media (max-width: 768px) {
+            .timetable-grid { grid-template-columns: 1fr; border: none; background-color: transparent; }
+            .day-column { border-right: none; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <!-- Modal para añadir/editar bloques -->
+    <div id="edit-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <h2 id="modal-title" class="text-2xl font-bold mb-6 text-gray-800">Añadir Bloque</h2>
+            <form id="modal-form">
+                <div class="mb-4">
+                    <label for="block-time" class="block text-sm font-medium text-gray-700 mb-1">Hora (ej. 08:15 - 09:15)</label>
+                    <input type="text" id="block-time" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="block-group" class="block text-sm font-medium text-gray-700 mb-1">Grupo/Asignatura</label>
+                    <input type="text" id="block-group" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="block-desc" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                    <textarea id="block-desc" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                <div class="mb-6">
+                    <label for="block-color" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <select id="block-color" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="color-blue">Azul</option>
+                        <option value="color-green">Verde</option>
+                        <option value="color-pink">Rosa</option>
+                        <option value="color-purple">Morado</option>
+                        <option value="color-amber">Ámbar</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="cancel-btn" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-semibold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal de confirmación para eliminar -->
+    <div id="confirm-modal" class="modal-container hidden">
+        <div class="modal-content text-center">
+            <h2 id="confirm-title" class="text-xl font-bold mb-4 text-gray-800">¿Confirmar eliminación?</h2>
+            <p id="confirm-text" class="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold">Cancelar</button>
+                <button id="confirm-ok-btn" class="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="max-w-screen-xl mx-auto">
+        <!-- Header con navegación -->
+        <header class="flex justify-between items-center mb-8 p-4 rounded-xl shadow-lg header-gradient text-white">
+            <button id="prev-week" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                <i class="fas fa-chevron-left fa-fw"></i>
+            </button>
+            <h1 id="week-title" class="text-xl md:text-2xl font-extrabold text-center tracking-wide">Cargando...</h1>
+            <button id="next-week" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                <i class="fas fa-chevron-right fa-fw"></i>
+            </button>
+        </header>
+
+        <!-- Rejilla del horario -->
+        <div id="timetable-container" class="timetable-grid">
+            <!-- Las columnas de los días se generarán dinámicamente -->
+        </div>
+    </div>
+
+    <script type="module">
+        // --- FUNCIONES GLOBALES (No dependen del DOM) ---
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        function getWeekId(d) {
+            const monday = getMonday(d);
+            return `planner-${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+        }
+
+        // --- LÓGICA PRINCIPAL (Se ejecuta cuando el DOM está listo) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- VARIABLES ---
+            let currentMonday = getMonday(new Date(2025, 8, 1));
+            let weeklyData = {};
+            let itemToDelete = { dayIndex: null, blockId: null };
+            let currentEditing = { dayIndex: null, blockId: null };
+
+            // --- ELEMENTOS DEL DOM ---
+            const weekTitleEl = document.getElementById('week-title');
+            const timetableContainer = document.getElementById('timetable-container');
+            const editModal = document.getElementById('edit-modal');
+            const modalForm = document.getElementById('modal-form');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+
+            // --- FUNCIONES DE RENDERIZADO ---
+            function renderWeek() {
+                const monday = currentMonday;
+                const friday = new Date(monday);
+                friday.setDate(monday.getDate() + 4);
+                const monthFormat = friday.getMonth() === monday.getMonth() ? undefined : 'long';
+                const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: monthFormat });
+                const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                weekTitleEl.textContent = `Semana del ${mondayStr} al ${fridayStr}`;
+                
+                const weekId = getWeekId(currentMonday);
+                const savedData = localStorage.getItem(weekId);
+                weeklyData = savedData ? JSON.parse(savedData) : {};
+                
+                drawTimetable(weeklyData);
+            }
+
+            function drawTimetable(data) {
+                timetableContainer.innerHTML = '';
+                const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+                dayNames.forEach((dayName, dayIndex) => {
+                    const dayColumn = document.createElement('div');
+                    dayColumn.className = 'day-column';
+
+                    const dayDate = new Date(currentMonday);
+                    dayDate.setDate(currentMonday.getDate() + dayIndex);
+
+                    dayColumn.innerHTML = `<div class="day-header day-header-${dayIndex}">${dayName} <span class="font-semibold text-gray-700/80">${dayDate.getDate()}</span></div>`;
+
+                    const dayKey = `day_${dayIndex}`;
+                    const blocks = data[dayKey] || [];
+
+                    blocks.forEach(block => {
+                        dayColumn.appendChild(createBlockElement(block, dayIndex));
+                    });
+                    
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'add-block-btn';
+                    addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Añadir bloque';
+                    addBtn.dataset.dayIndex = dayIndex;
+                    dayColumn.appendChild(addBtn);
+
+                    timetableContainer.appendChild(dayColumn);
+                });
+            }
+
+            function createBlockElement(block, dayIndex) {
+                const blockEl = document.createElement('div');
+                blockEl.className = `class-block ${block.color}`;
+                blockEl.dataset.dayIndex = dayIndex;
+                blockEl.dataset.blockId = block.id;
+                blockEl.innerHTML = `
+                    <div class="delete-btn" title="Eliminar bloque"><i class="fas fa-times"></i></div>
+                    <p class="font-bold text-sm text-gray-800 pointer-events-none">${block.time}</p>
+                    <p class="font-semibold text-gray-700 text-sm pointer-events-none">${block.group}</p>
+                    <p class="text-gray-600 text-sm mt-1 pointer-events-none">${block.desc}</p>
+                `;
+                return blockEl;
+            }
+
+            // --- MANEJO DE DATOS (LocalStorage) ---
+            function saveData() {
+                const weekId = getWeekId(currentMonday);
+                localStorage.setItem(weekId, JSON.stringify(weeklyData));
+            }
+
+            // --- MANEJO DE MODALES ---
+            function openEditModal(dayIndex, blockId = null) {
+                currentEditing = { dayIndex, blockId };
+                modalForm.reset();
+                if (blockId) {
+                    const dayKey = `day_${dayIndex}`;
+                    const block = weeklyData[dayKey].find(b => b.id === blockId);
+                    document.getElementById('modal-title').textContent = 'Editar Bloque';
+                    document.getElementById('block-time').value = block.time;
+                    document.getElementById('block-group').value = block.group;
+                    document.getElementById('block-desc').value = block.desc;
+                    document.getElementById('block-color').value = block.color;
+                } else {
+                    document.getElementById('modal-title').textContent = 'Añadir Bloque';
+                }
+                editModal.classList.remove('hidden');
+            }
+
+            function closeEditModal() {
+                editModal.classList.add('hidden');
+            }
+
+            function openConfirmModal(dayIndex, blockId) {
+                itemToDelete = { dayIndex, blockId };
+                confirmModal.classList.remove('hidden');
+            }
+
+            function closeConfirmModal() {
+                itemToDelete = { dayIndex: null, blockId: null };
+                confirmModal.classList.add('hidden');
+            }
+
+            // --- EVENT LISTENERS ---
+            timetableContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                const deleteBtn = target.closest('.delete-btn');
+                if (deleteBtn) {
+                    const blockEl = target.closest('.class-block');
+                    const dayIndex = parseInt(blockEl.dataset.dayIndex);
+                    const blockId = blockEl.dataset.blockId;
+                    openConfirmModal(dayIndex, blockId);
+                    return;
+                }
+
+                const addBtn = target.closest('.add-block-btn');
+                if (addBtn) {
+                    const dayIndex = parseInt(addBtn.dataset.dayIndex);
+                    openEditModal(dayIndex);
+                    return;
+                }
+
+                const blockEl = target.closest('.class-block');
+                if (blockEl) {
+                    const dayIndex = parseInt(blockEl.dataset.dayIndex);
+                    const blockId = blockEl.dataset.blockId;
+                    openEditModal(dayIndex, blockId);
+                    return;
+                }
+            });
+
+            modalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const { dayIndex, blockId } = currentEditing;
+                const dayKey = `day_${dayIndex}`;
+                
+                const newBlockData = {
+                    time: document.getElementById('block-time').value,
+                    group: document.getElementById('block-group').value,
+                    desc: document.getElementById('block-desc').value,
+                    color: document.getElementById('block-color').value
+                };
+
+                if (blockId) {
+                    const blockIndex = weeklyData[dayKey].findIndex(b => b.id === blockId);
+                    weeklyData[dayKey][blockIndex] = { id: blockId, ...newBlockData };
+                } else {
+                    newBlockData.id = Date.now().toString();
+                    if (!weeklyData[dayKey]) weeklyData[dayKey] = [];
+                    weeklyData[dayKey].push(newBlockData);
+                }
+                
+                saveData();
+                closeEditModal();
+                renderWeek();
+            });
+
+            document.getElementById('prev-week').addEventListener('click', () => {
+                currentMonday.setDate(currentMonday.getDate() - 7);
+                renderWeek();
+            });
+
+            document.getElementById('next-week').addEventListener('click', () => {
+                currentMonday.setDate(currentMonday.getDate() + 7);
+                renderWeek();
+            });
+
+            cancelBtn.addEventListener('click', closeEditModal);
+            
+            confirmCancelBtn.addEventListener('click', closeConfirmModal);
+
+            confirmOkBtn.addEventListener('click', () => {
+                const { dayIndex, blockId } = itemToDelete;
+                if (dayIndex !== null && blockId !== null) {
+                    const dayKey = `day_${dayIndex}`;
+                    if (weeklyData[dayKey] && Array.isArray(weeklyData[dayKey])) {
+                        weeklyData[dayKey] = weeklyData[dayKey].filter(b => b.id !== blockId);
+                        saveData();
+                        renderWeek();
+                    }
+                }
+                closeConfirmModal();
+            });
+            
+            // --- INICIALIZACIÓN ---
+            renderWeek();
+        });
+    </script>
+</body>
+</html>
 <!-- El resto del contenido de index.html debe ser mantenido aquí -->
