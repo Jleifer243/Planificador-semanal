@@ -204,7 +204,6 @@
             { label: '3ª Hora', timeValue: '10:15' }
         ];
         
-        // --- FUNCIONES DE FECHA ---
         function getMonday(d) {
             d = new Date(d);
             const day = d.getDay();
@@ -217,7 +216,6 @@
             return `semana-${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
         }
         
-        // --- INICIALIZACIÓN DE LA APLICACIÓN ---
         async function main() {
             let currentMonday = getMonday(new Date()); 
             let weeklyData = {};
@@ -237,16 +235,9 @@
 
             async function initFirebase() {
                 try {
-                    if (!firebaseConfig || !firebaseConfig.projectId) {
-                        alert("Error de configuración: La 'llave' de Firebase no está presente. Por favor, contacta para solucionarlo.");
-                        loadingOverlay.innerHTML = `<div class="text-red-600 font-bold text-center p-4">Error: Falta la configuración de Firebase.</div>`;
-                        return;
-                    }
-
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
-                    
                     const userCredential = await signInAnonymously(auth);
                     userId = userCredential.user.uid;
                     console.log("Usuario autenticado anónimamente:", userId);
