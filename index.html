@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Escolar Elegante</title>
+    <title>Planificador Escolar en la Nube</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,6 +14,19 @@
         }
         .header-gradient {
             background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+        }
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
         }
         .timetable-grid {
             display: grid;
@@ -109,7 +122,12 @@
     </style>
 </head>
 <body class="p-4 md:p-6">
-
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="text-xl font-semibold text-gray-700">Cargando tu planificador...</div>
+    </div>
+    
+    <!-- Modals -->
     <div id="edit-modal" class="modal-container hidden">
         <div class="modal-content">
             <h2 id="modal-title" class="text-2xl font-bold mb-6 text-gray-800">Añadir Tarea</h2>
@@ -118,16 +136,6 @@
                 <div class="mb-4">
                     <label for="block-desc" class="block text-sm font-medium text-gray-700 mb-1">Descripción de la Tarea</label>
                     <textarea id="block-desc" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required></textarea>
-                </div>
-                <div class="mb-6">
-                    <label for="block-color" class="block text-sm font-medium text-gray-700 mb-1">Color Etiqueta</label>
-                    <select id="block-color" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="color-blue">Azul</option>
-                        <option value="color-green">Verde</option>
-                        <option value="color-pink">Rosa</option>
-                        <option value="color-purple">Morado</option>
-                        <option value="color-amber">Ámbar</option>
-                    </select>
                 </div>
                 <div class="flex justify-end space-x-4">
                     <button type="button" id="cancel-btn" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold">Cancelar</button>
@@ -166,7 +174,13 @@
         </div>
     </div>
 
+    <!-- Firebase Libraries -->
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- HORARIO FIJO Y CONSTANTES ---
         const scheduleTemplate = {
             'day_0': [{ time: '10:15', group: 'Lengua 4º ESO', isClass: true }],
             'day_1': [{ time: '08:15', group: 'Latín 4º ESO', isClass: true }, { time: '09:15', group: 'Lengua 4º ESO', isClass: true }],
@@ -180,6 +194,7 @@
             { label: '3ª Hora', timeValue: '10:15' }
         ];
         
+        // --- FUNCIONES DE FECHA ---
         function getMonday(d) {
             d = new Date(d);
             const day = d.getDay();
@@ -189,15 +204,19 @@
         }
         function getWeekId(d) {
             const monday = getMonday(d);
-            return `planner-${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+            return `semana-${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
+        
+        // --- INICIALIZACIÓN DE LA APLICACIÓN ---
+        async function main() {
+            // --- VARIABLES GLOBALES DE LA APP ---
             let currentMonday = getMonday(new Date()); 
             let weeklyData = {};
             let itemToDelete = { dayIndex: null, blockId: null };
             let currentEditing = { dayIndex: null, blockId: null };
+            let db, auth, userId, appId;
 
+            // --- ELEMENTOS DEL DOM ---
             const weekTitleEl = document.getElementById('week-title');
             const timetableContainer = document.getElementById('timetable-container');
             const editModal = document.getElementById('edit-modal');
@@ -206,7 +225,84 @@
             const confirmModal = document.getElementById('confirm-modal');
             const confirmOkBtn = document.getElementById('confirm-ok-btn');
             const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+            const loadingOverlay = document.getElementById('loading-overlay');
 
+            // --- INICIALIZACIÓN DE FIREBASE ---
+            async function initFirebase() {
+                try {
+                    // Estas variables __app_id y __firebase_config son proporcionadas por el entorno
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                    
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    // Autenticación del usuario
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    
+                    return new Promise(resolve => {
+                        onAuthStateChanged(auth, user => {
+                            if (user) {
+                                userId = user.uid;
+                                console.log("Usuario autenticado:", userId);
+                                resolve();
+                            }
+                        });
+                    });
+
+                } catch (error) {
+                    console.error("Error al inicializar Firebase:", error);
+                    alert("No se pudo conectar con el servicio de guardado. Por favor, recarga la página.");
+                }
+            }
+
+            // --- LÓGICA DE DATOS CON FIRESTORE ---
+            async function renderWeek() {
+                // Actualizar título de la semana
+                const monday = currentMonday;
+                const friday = new Date(monday);
+                friday.setDate(monday.getDate() + 4);
+                const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: monday.getMonth() !== friday.getMonth() ? 'long' : undefined });
+                const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                weekTitleEl.textContent = `Semana del ${mondayStr} al ${fridayStr}`;
+
+                // Obtener datos de Firestore
+                const weekId = getWeekId(currentMonday);
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/planner_weeks/${weekId}`);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    weeklyData = docSnap.data().data;
+                } else {
+                    // Si no existe el documento, crearlo a partir de la plantilla
+                    weeklyData = {};
+                    Object.keys(scheduleTemplate).forEach(dayKey => {
+                        weeklyData[dayKey] = scheduleTemplate[dayKey].map(block => ({...block, desc: '', id: self.crypto.randomUUID() }));
+                    });
+                    await saveData(); // Guardar la nueva semana en Firestore
+                }
+                drawTimetable(weeklyData);
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => loadingOverlay.style.display = 'none', 300);
+            }
+
+            async function saveData() {
+                if (!userId || !db) return;
+                const weekId = getWeekId(currentMonday);
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/planner_weeks/${weekId}`);
+                try {
+                    await setDoc(docRef, { data: weeklyData });
+                } catch (error) {
+                    console.error("Error al guardar los datos:", error);
+                }
+            }
+            
+            // --- LÓGICA DE RENDERIZADO DEL DOM ---
             function drawTimetable(data) {
                 timetableContainer.innerHTML = '';
                 const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
@@ -273,29 +369,8 @@
                 blockEl.innerHTML = `<p class="text-gray-700 text-sm pointer-events-none pr-6">${block.desc}</p><div class="delete-btn" title="Eliminar tarea"><i class="fas fa-times"></i></div>`;
                 return blockEl;
             }
-            
-            function renderWeek() {
-                const monday = currentMonday;
-                const friday = new Date(monday);
-                friday.setDate(monday.getDate() + 4);
-                const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: monday.getMonth() !== friday.getMonth() ? 'long' : undefined });
-                const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                weekTitleEl.textContent = `Semana del ${mondayStr} al ${fridayStr}`;
-                const weekId = getWeekId(currentMonday);
-                const savedData = localStorage.getItem(weekId);
-                if (savedData) {
-                    weeklyData = JSON.parse(savedData);
-                } else {
-                    weeklyData = {};
-                    Object.keys(scheduleTemplate).forEach(dayKey => {
-                        weeklyData[dayKey] = scheduleTemplate[dayKey].map(block => ({...block, desc: '', id: Date.now().toString() + Math.random() }));
-                    });
-                    saveData();
-                }
-                drawTimetable(weeklyData);
-            }
-            function saveData() { localStorage.setItem(getWeekId(currentMonday), JSON.stringify(weeklyData)); }
-            
+
+            // --- MANEJO DE MODALES Y EVENTOS ---
             function openEditModal(dayIndex, blockId = null, time = null) {
                 currentEditing = { dayIndex, blockId };
                 modalForm.reset();
@@ -303,7 +378,7 @@
                     const block = weeklyData[`day_${dayIndex}`].find(b => b.id === blockId);
                     document.getElementById('modal-title').textContent = 'Editar Tarea';
                     document.getElementById('block-desc').value = block.desc;
-                    document.getElementById('block-color').value = block.color;
+                    // El color ya no se edita, se asigna automáticamente
                     document.getElementById('block-time').value = block.time;
                 } else {
                     document.getElementById('modal-title').textContent = 'Añadir Tarea';
@@ -312,7 +387,6 @@
                 editModal.classList.remove('hidden');
             }
             function closeEditModal() { editModal.classList.add('hidden'); }
-            
             function openConfirmModal(dayIndex, blockId) {
                 itemToDelete = { dayIndex, blockId };
                 confirmModal.classList.remove('hidden');
@@ -334,42 +408,70 @@
                 const blockEl = e.target.closest('.task-block');
                 if (blockEl) { openEditModal(parseInt(blockEl.dataset.dayIndex), blockEl.dataset.blockId); }
             });
-            modalForm.addEventListener('submit', (e) => {
+
+            modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const { dayIndex, blockId } = currentEditing;
                 const dayKey = `day_${dayIndex}`;
+                const time = document.getElementById('block-time').value;
+
+                // Determinar el color automáticamente
+                const mainClass = weeklyData[dayKey].find(b => b.time === time && b.isClass);
+                let newColor = 'color-blue'; // Color por defecto
+                if (mainClass) {
+                    const subject = mainClass.group;
+                    if (subject.includes('Lengua')) newColor = 'color-blue';
+                    else if (subject.includes('Latín')) newColor = 'color-amber';
+                    else if (subject.includes('Oratoria')) newColor = 'color-green';
+                    else if (subject.includes('ATEDU')) newColor = 'color-purple';
+                }
+
                 const newBlockData = {
-                    time: document.getElementById('block-time').value, desc: document.getElementById('block-desc').value,
-                    color: document.getElementById('block-color').value, isClass: false
+                    time: time, desc: document.getElementById('block-desc').value,
+                    color: newColor, isClass: false
                 };
+
                 if (blockId) {
                     const idx = weeklyData[dayKey].findIndex(b => b.id === blockId);
+                    // Mantenemos el ID original al editar
+                    newBlockData.id = blockId;
                     weeklyData[dayKey][idx] = { ...weeklyData[dayKey][idx], ...newBlockData };
                 } else {
-                    newBlockData.id = Date.now().toString();
+                    newBlockData.id = self.crypto.randomUUID();
                     if (!weeklyData[dayKey]) weeklyData[dayKey] = [];
                     weeklyData[dayKey].push(newBlockData);
                 }
-                saveData(); closeEditModal(); renderWeek();
+                await saveData();
+                closeEditModal();
+                drawTimetable(weeklyData);
             });
+            
+            confirmOkBtn.addEventListener('click', async () => {
+                const { dayIndex, blockId } = itemToDelete;
+                if (dayIndex !== null && blockId !== null) {
+                    const dayKey = `day_${dayIndex}`;
+                    weeklyData[dayKey] = weeklyData[dayKey].filter(b => b.id !== blockId);
+                    await saveData();
+                    drawTimetable(weeklyData);
+                }
+                closeConfirmModal();
+            });
+
             document.getElementById('prev-week').addEventListener('click', () => { currentMonday.setDate(currentMonday.getDate() - 7); renderWeek(); });
             document.getElementById('next-week').addEventListener('click', () => { currentMonday.setDate(currentMonday.getDate() + 7); renderWeek(); });
             document.getElementById('go-today').addEventListener('click', () => { currentMonday = getMonday(new Date()); renderWeek(); });
             cancelBtn.addEventListener('click', closeEditModal);
             confirmCancelBtn.addEventListener('click', closeConfirmModal);
-            confirmOkBtn.addEventListener('click', () => {
-                const { dayIndex, blockId } = itemToDelete;
-                if (dayIndex !== null && blockId !== null) {
-                    weeklyData[`day_${dayIndex}`] = weeklyData[`day_${dayIndex}`].filter(b => b.id !== blockId);
-                    saveData(); renderWeek();
-                }
-                closeConfirmModal();
-            });
             
-            renderWeek();
-        });
+            // --- ARRANQUE DE LA APP ---
+            await initFirebase();
+            await renderWeek();
+        }
+
+        main();
     </script>
 </body>
 </html>
+
 
 
