@@ -265,7 +265,6 @@
                     
                     onAuthStateChanged(auth, async (user) => {
                         if (user) {
-                            // User is signed in.
                             userId = user.uid;
                             userPhoto.src = user.photoURL;
                             userName.textContent = user.displayName;
@@ -279,7 +278,6 @@
 
                             await renderWeek();
                         } else {
-                            // User is signed out.
                             userId = null;
                             signInContainer.classList.remove('hidden');
                             userInfoContainer.classList.add('hidden');
