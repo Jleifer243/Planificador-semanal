@@ -180,15 +180,15 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // =======================================================================
-        // PASO CRÍTICO: PEGA AQUÍ TU CÓDIGO DE FIREBASE
-        // Borra la línea de abajo y pega el "const firebaseConfig = { ... };"
-        // que copiaste de la página de Firebase.
-        // =======================================================================
-        
-        const firebaseConfig = { /* PEGA AQUÍ TU CONFIGURACIÓN PERSONAL */ };
-        
-        // =======================================================================
+        // --- TU CONFIGURACIÓN PERSONAL DE FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYS4xwr-ieVslIlymnLcZRll-R6Cjcc_c",
+            authDomain: "planificador-semanal-54fd2.firebaseapp.com",
+            projectId: "planificador-semanal-54fd2",
+            storageBucket: "planificador-semanal-54fd2.appspot.com",
+            messagingSenderId: "505025151757",
+            appId: "1:505025151757:web:f81087bd24d760cf5be644"
+        };
 
         // --- HORARIO FIJO Y CONSTANTES ---
         const scheduleTemplate = {
@@ -238,8 +238,8 @@
             async function initFirebase() {
                 try {
                     if (!firebaseConfig || !firebaseConfig.projectId) {
-                        alert("Error de configuración: Aún no has pegado tu 'llave' de Firebase en el código. Por favor, abre el archivo HTML, busca la sección 'PASO CRÍTICO' y pega tu 'firebaseConfig' personal.");
-                        loadingOverlay.innerHTML = `<div class="text-red-600 font-bold text-center p-4">Error: Falta la configuración de Firebase.<br/>Abre el archivo HTML para completarla.</div>`;
+                        alert("Error de configuración: La 'llave' de Firebase no está presente. Por favor, contacta para solucionarlo.");
+                        loadingOverlay.innerHTML = `<div class="text-red-600 font-bold text-center p-4">Error: Falta la configuración de Firebase.</div>`;
                         return;
                     }
 
