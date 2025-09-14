@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Escolar en la Nube</title>
+    <title>Planificador Escolar Sincronizado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,8 +21,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.9);
             display: flex;
+            flex-direction: column;
+            gap: 1rem;
             justify-content: center;
             align-items: center;
             z-index: 9999;
@@ -115,16 +117,13 @@
             background-color: white; padding: 32px; border-radius: 16px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 100%; max-width: 480px;
         }
-        @media (max-width: 640px) {
-            body { padding: 0.5rem; }
-            #week-title { font-size: 1rem; }
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="p-4 md:p-6">
     <!-- Loading Overlay -->
     <div id="loading-overlay">
-        <div class="text-xl font-semibold text-gray-700">Conectando con el servicio de guardado...</div>
+        <div id="loading-text" class="text-xl font-semibold text-gray-700">Conectando...</div>
     </div>
     
     <!-- Modals -->
@@ -161,11 +160,24 @@
                 <button id="prev-week" class="p-2 rounded-full hover:bg-white/20 transition-colors" title="Semana anterior"><i class="fas fa-chevron-left fa-fw"></i></button>
                 <button id="next-week" class="p-2 rounded-full hover:bg-white/20 transition-colors" title="Semana siguiente"><i class="fas fa-chevron-right fa-fw"></i></button>
              </div>
-             <h1 id="week-title" class="text-xl md:text-2xl font-extrabold text-center tracking-wide">Cargando...</h1>
-             <div class="flex items-center justify-end space-x-2">
+             <h1 id="week-title" class="text-xl md:text-2xl font-extrabold text-center tracking-wide">Planificador Semanal</h1>
+             <div id="auth-container" class="flex items-center justify-end gap-4">
                 <button id="go-today" class="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/20 transition-colors flex items-center gap-2">
                    <i class="fas fa-calendar-day fa-fw"></i> <span class="hidden md:inline">Hoy</span>
                 </button>
+                <div id="sign-in-container">
+                    <button id="sign-in-btn" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-indigo-600 hover:bg-gray-100 transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 110.3 512 0 401.8 0 265.8c0-13.2 1-26.2 2.7-39.1L244 256l241.3 5.8zM244 0c78.2 0 148.9 32.2 198.8 83.1l-63.5 61.8C349.5 111.3 300.9 88 244 88c-66.2 0-120.3 53.6-120.3 119.5s54.1 119.5 120.3 119.5c41.9 0 78.4-21.3 99.8-54.3l65.3 31.3c-37.2 73.1-114.7 124.9-204.1 124.9-132.8 0-241.3-108.4-241.3-241.3S111.2 0 244 0z"></path></svg>
+                        Iniciar sesión con Google
+                    </button>
+                </div>
+                <div id="user-info-container" class="hidden items-center gap-3">
+                    <img id="user-photo" class="w-8 h-8 rounded-full" src="" alt="Foto de usuario">
+                    <span id="user-name" class="text-sm font-semibold hidden md:inline"></span>
+                    <button id="sign-out-btn" class="p-2 rounded-full hover:bg-white/20 transition-colors" title="Cerrar sesión">
+                        <i class="fas fa-sign-out-alt fa-fw"></i>
+                    </button>
+                </div>
              </div>
         </header>
 
@@ -177,7 +189,7 @@
     <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // --- TU CONFIGURACIÓN PERSONAL DE FIREBASE ---
@@ -232,23 +244,81 @@
             const confirmOkBtn = document.getElementById('confirm-ok-btn');
             const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
             const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
 
+            const signInContainer = document.getElementById('sign-in-container');
+            const userInfoContainer = document.getElementById('user-info-container');
+            const signInBtn = document.getElementById('sign-in-btn');
+            const signOutBtn = document.getElementById('sign-out-btn');
+            const userPhoto = document.getElementById('user-photo');
+            const userName = document.getElementById('user-name');
+            
+            const prevWeekBtn = document.getElementById('prev-week');
+            const nextWeekBtn = document.getElementById('next-week');
+            const goTodayBtn = document.getElementById('go-today');
+            
             async function initFirebase() {
                 try {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
-                    const userCredential = await signInAnonymously(auth);
-                    userId = userCredential.user.uid;
-                    console.log("Usuario autenticado anónimamente:", userId);
+                    
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            // User is signed in.
+                            userId = user.uid;
+                            userPhoto.src = user.photoURL;
+                            userName.textContent = user.displayName;
+
+                            signInContainer.classList.add('hidden');
+                            userInfoContainer.classList.remove('hidden');
+                            userInfoContainer.classList.add('flex');
+
+                            loadingText.textContent = "Cargando tu planificador...";
+                            loadingOverlay.classList.remove('hidden');
+
+                            await renderWeek();
+                        } else {
+                            // User is signed out.
+                            userId = null;
+                            signInContainer.classList.remove('hidden');
+                            userInfoContainer.classList.add('hidden');
+                            userInfoContainer.classList.remove('flex');
+                            
+                            timetableContainer.innerHTML = `<div class="col-start-1 col-span-6 text-center p-10 text-gray-500 font-semibold">Por favor, inicia sesión con Google para cargar tu planificador.</div>`;
+                            weekTitleEl.textContent = 'Planificador Semanal';
+                            loadingOverlay.classList.add('hidden');
+                        }
+                    });
+
                 } catch (error) {
                     console.error("Error al inicializar Firebase:", error);
-                    alert("No se pudo conectar con el servicio de guardado. Revisa que la configuración de Firebase sea correcta y que hayas habilitado los servicios necesarios en la consola de Firebase.");
-                    loadingOverlay.innerHTML = `<div class="text-red-600 font-bold">Error de conexión</div>`;
+                    alert("No se pudo conectar con el servicio de guardado.");
+                    loadingText.textContent = "Error de conexión";
+                }
+            }
+
+            async function handleSignIn() {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Error al iniciar sesión:", error);
+                    alert("No se pudo iniciar sesión. Inténtalo de nuevo.");
+                }
+            }
+
+            async function handleSignOut() {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error("Error al cerrar sesión:", error);
                 }
             }
 
             async function renderWeek() {
+                if (!userId) return;
+
                 const monday = currentMonday;
                 const friday = new Date(monday);
                 friday.setDate(monday.getDate() + 4);
@@ -271,7 +341,7 @@
                 }
                 drawTimetable(weeklyData);
                 loadingOverlay.style.opacity = '0';
-                setTimeout(() => loadingOverlay.style.display = 'none', 300);
+                setTimeout(() => { loadingOverlay.classList.add('hidden'); loadingOverlay.style.opacity = '1'; }, 300);
             }
 
             async function saveData() {
@@ -376,6 +446,9 @@
                 confirmModal.classList.add('hidden');
             }
             
+            signInBtn.addEventListener('click', handleSignIn);
+            signOutBtn.addEventListener('click', handleSignOut);
+
             timetableContainer.addEventListener('click', (e) => {
                 const addBtn = e.target.closest('.add-task-btn');
                 if (addBtn) { openEditModal(parseInt(addBtn.dataset.dayIndex), null, addBtn.dataset.time); return; }
@@ -435,16 +508,13 @@
                 closeConfirmModal();
             });
 
-            document.getElementById('prev-week').addEventListener('click', () => { currentMonday.setDate(currentMonday.getDate() - 7); renderWeek(); });
-            document.getElementById('next-week').addEventListener('click', () => { currentMonday.setDate(currentMonday.getDate() + 7); renderWeek(); });
-            document.getElementById('go-today').addEventListener('click', () => { currentMonday = getMonday(new Date()); renderWeek(); });
+            prevWeekBtn.addEventListener('click', () => { if(userId) { currentMonday.setDate(currentMonday.getDate() - 7); renderWeek(); }});
+            nextWeekBtn.addEventListener('click', () => { if(userId) { currentMonday.setDate(currentMonday.getDate() + 7); renderWeek(); }});
+            goTodayBtn.addEventListener('click', () => { if(userId) { currentMonday = getMonday(new Date()); renderWeek(); }});
             cancelBtn.addEventListener('click', closeEditModal);
             confirmCancelBtn.addEventListener('click', closeConfirmModal);
             
-            await initFirebase();
-            if (userId) {
-                await renderWeek();
-            }
+            initFirebase();
         }
 
         main();
