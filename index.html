@@ -124,7 +124,7 @@
 <body class="p-4 md:p-6">
     <!-- Loading Overlay -->
     <div id="loading-overlay">
-        <div class="text-xl font-semibold text-gray-700">Cargando tu planificador...</div>
+        <div class="text-xl font-semibold text-gray-700">Conectando con el servicio de guardado...</div>
     </div>
     
     <!-- Modals -->
@@ -177,8 +177,18 @@
     <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // =======================================================================
+        // PASO CRÍTICO: PEGA AQUÍ TU CÓDIGO DE FIREBASE
+        // Borra la línea de abajo y pega el "const firebaseConfig = { ... };"
+        // que copiaste de la página de Firebase.
+        // =======================================================================
+        
+        const firebaseConfig = { /* PEGA AQUÍ TU CONFIGURACIÓN PERSONAL */ };
+        
+        // =======================================================================
 
         // --- HORARIO FIJO Y CONSTANTES ---
         const scheduleTemplate = {
@@ -209,14 +219,12 @@
         
         // --- INICIALIZACIÓN DE LA APLICACIÓN ---
         async function main() {
-            // --- VARIABLES GLOBALES DE LA APP ---
             let currentMonday = getMonday(new Date()); 
             let weeklyData = {};
             let itemToDelete = { dayIndex: null, blockId: null };
             let currentEditing = { dayIndex: null, blockId: null };
-            let db, auth, userId, appId;
+            let db, auth, userId;
 
-            // --- ELEMENTOS DEL DOM ---
             const weekTitleEl = document.getElementById('week-title');
             const timetableContainer = document.getElementById('timetable-container');
             const editModal = document.getElementById('edit-modal');
@@ -227,43 +235,29 @@
             const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
             const loadingOverlay = document.getElementById('loading-overlay');
 
-            // --- INICIALIZACIÓN DE FIREBASE ---
             async function initFirebase() {
                 try {
-                    // Estas variables __app_id y __firebase_config son proporcionadas por el entorno
-                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-                    
+                    if (!firebaseConfig || !firebaseConfig.projectId) {
+                        alert("Error de configuración: Aún no has pegado tu 'llave' de Firebase en el código. Por favor, abre el archivo HTML, busca la sección 'PASO CRÍTICO' y pega tu 'firebaseConfig' personal.");
+                        loadingOverlay.innerHTML = `<div class="text-red-600 font-bold text-center p-4">Error: Falta la configuración de Firebase.<br/>Abre el archivo HTML para completarla.</div>`;
+                        return;
+                    }
+
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
-
-                    // Autenticación del usuario
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
                     
-                    return new Promise(resolve => {
-                        onAuthStateChanged(auth, user => {
-                            if (user) {
-                                userId = user.uid;
-                                console.log("Usuario autenticado:", userId);
-                                resolve();
-                            }
-                        });
-                    });
-
+                    const userCredential = await signInAnonymously(auth);
+                    userId = userCredential.user.uid;
+                    console.log("Usuario autenticado anónimamente:", userId);
                 } catch (error) {
                     console.error("Error al inicializar Firebase:", error);
-                    alert("No se pudo conectar con el servicio de guardado. Por favor, recarga la página.");
+                    alert("No se pudo conectar con el servicio de guardado. Revisa que la configuración de Firebase sea correcta y que hayas habilitado los servicios necesarios en la consola de Firebase.");
+                    loadingOverlay.innerHTML = `<div class="text-red-600 font-bold">Error de conexión</div>`;
                 }
             }
 
-            // --- LÓGICA DE DATOS CON FIRESTORE ---
             async function renderWeek() {
-                // Actualizar título de la semana
                 const monday = currentMonday;
                 const friday = new Date(monday);
                 friday.setDate(monday.getDate() + 4);
@@ -271,20 +265,18 @@
                 const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
                 weekTitleEl.textContent = `Semana del ${mondayStr} al ${fridayStr}`;
 
-                // Obtener datos de Firestore
                 const weekId = getWeekId(currentMonday);
-                const docRef = doc(db, `artifacts/${appId}/users/${userId}/planner_weeks/${weekId}`);
+                const docRef = doc(db, `users/${userId}/weeks/${weekId}`);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     weeklyData = docSnap.data().data;
                 } else {
-                    // Si no existe el documento, crearlo a partir de la plantilla
                     weeklyData = {};
                     Object.keys(scheduleTemplate).forEach(dayKey => {
                         weeklyData[dayKey] = scheduleTemplate[dayKey].map(block => ({...block, desc: '', id: self.crypto.randomUUID() }));
                     });
-                    await saveData(); // Guardar la nueva semana en Firestore
+                    await saveData();
                 }
                 drawTimetable(weeklyData);
                 loadingOverlay.style.opacity = '0';
@@ -294,7 +286,7 @@
             async function saveData() {
                 if (!userId || !db) return;
                 const weekId = getWeekId(currentMonday);
-                const docRef = doc(db, `artifacts/${appId}/users/${userId}/planner_weeks/${weekId}`);
+                const docRef = doc(db, `users/${userId}/weeks/${weekId}`);
                 try {
                     await setDoc(docRef, { data: weeklyData });
                 } catch (error) {
@@ -302,7 +294,6 @@
                 }
             }
             
-            // --- LÓGICA DE RENDERIZADO DEL DOM ---
             function drawTimetable(data) {
                 timetableContainer.innerHTML = '';
                 const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
@@ -370,7 +361,6 @@
                 return blockEl;
             }
 
-            // --- MANEJO DE MODALES Y EVENTOS ---
             function openEditModal(dayIndex, blockId = null, time = null) {
                 currentEditing = { dayIndex, blockId };
                 modalForm.reset();
@@ -378,7 +368,6 @@
                     const block = weeklyData[`day_${dayIndex}`].find(b => b.id === blockId);
                     document.getElementById('modal-title').textContent = 'Editar Tarea';
                     document.getElementById('block-desc').value = block.desc;
-                    // El color ya no se edita, se asigna automáticamente
                     document.getElementById('block-time').value = block.time;
                 } else {
                     document.getElementById('modal-title').textContent = 'Añadir Tarea';
@@ -415,9 +404,8 @@
                 const dayKey = `day_${dayIndex}`;
                 const time = document.getElementById('block-time').value;
 
-                // Determinar el color automáticamente
                 const mainClass = weeklyData[dayKey].find(b => b.time === time && b.isClass);
-                let newColor = 'color-blue'; // Color por defecto
+                let newColor = 'color-blue';
                 if (mainClass) {
                     const subject = mainClass.group;
                     if (subject.includes('Lengua')) newColor = 'color-blue';
@@ -433,7 +421,6 @@
 
                 if (blockId) {
                     const idx = weeklyData[dayKey].findIndex(b => b.id === blockId);
-                    // Mantenemos el ID original al editar
                     newBlockData.id = blockId;
                     weeklyData[dayKey][idx] = { ...weeklyData[dayKey][idx], ...newBlockData };
                 } else {
@@ -463,15 +450,14 @@
             cancelBtn.addEventListener('click', closeEditModal);
             confirmCancelBtn.addEventListener('click', closeConfirmModal);
             
-            // --- ARRANQUE DE LA APP ---
             await initFirebase();
-            await renderWeek();
+            if (userId) {
+                await renderWeek();
+            }
         }
 
         main();
     </script>
 </body>
 </html>
-
-
 
