@@ -194,14 +194,14 @@
 
         // --- TU CONFIGURACIÓN PERSONAL DE FIREBASE ---
         const firebaseConfig = {
-            apiKey: "AIzaSyAYS4xwr-ieVslIlymnLcZRll-R6Cjcc_c",
-            authDomain: "planificador-semanal-54fd2.firebaseapp.com",
-            projectId: "planificador-semanal-54fd2",
-            storageBucket: "planificador-semanal-54fd2.appspot.com",
-            messagingSenderId: "505025151757",
-            appId: "1:505025151757:web:f81087bd24d760cf5be644"
+            apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
+            authDomain: "planificador-final-app.firebaseapp.com",
+            projectId: "planificador-final-app",
+            storageBucket: "planificador-final-app.appspot.com",
+            messagingSenderId: "1018171067065",
+            appId: "1:1018171067065:web:201a8d7ba1445e73afa968"
         };
-
+        
         // --- HORARIO FIJO Y CONSTANTES ---
         const scheduleTemplate = {
             'day_0': [{ time: '10:15', group: 'Lengua 4º ESO', isClass: true }],
@@ -268,27 +268,22 @@
                             userId = user.uid;
                             userPhoto.src = user.photoURL;
                             userName.textContent = user.displayName;
-
                             signInContainer.classList.add('hidden');
                             userInfoContainer.classList.remove('hidden');
                             userInfoContainer.classList.add('flex');
-
                             loadingText.textContent = "Cargando tu planificador...";
                             loadingOverlay.classList.remove('hidden');
-
                             await renderWeek();
                         } else {
                             userId = null;
                             signInContainer.classList.remove('hidden');
                             userInfoContainer.classList.add('hidden');
                             userInfoContainer.classList.remove('flex');
-                            
                             timetableContainer.innerHTML = `<div class="col-start-1 col-span-6 text-center p-10 text-gray-500 font-semibold">Por favor, inicia sesión con Google para cargar tu planificador.</div>`;
                             weekTitleEl.textContent = 'Planificador Semanal';
                             loadingOverlay.classList.add('hidden');
                         }
                     });
-
                 } catch (error) {
                     console.error("Error al inicializar Firebase:", error);
                     alert("No se pudo conectar con el servicio de guardado.");
@@ -298,39 +293,26 @@
 
             async function handleSignIn() {
                 const provider = new GoogleAuthProvider();
-                try {
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    console.error("Error al iniciar sesión:", error);
-                    alert("No se pudo iniciar sesión. Inténtalo de nuevo.");
-                }
+                try { await signInWithPopup(auth, provider); }
+                catch (error) { console.error("Error al iniciar sesión:", error); alert("No se pudo iniciar sesión. Inténtalo de nuevo."); }
             }
 
             async function handleSignOut() {
-                try {
-                    await signOut(auth);
-                } catch (error) {
-                    console.error("Error al cerrar sesión:", error);
-                }
+                try { await signOut(auth); }
+                catch (error) { console.error("Error al cerrar sesión:", error); }
             }
 
             async function renderWeek() {
                 if (!userId) return;
-
                 const monday = currentMonday;
                 const friday = new Date(monday);
                 friday.setDate(monday.getDate() + 4);
-                const mondayStr = monday.toLocaleDateString('es-ES', { day: 'numeric', month: monday.getMonth() !== friday.getMonth() ? 'long' : undefined });
-                const fridayStr = friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-                weekTitleEl.textContent = `Semana del ${mondayStr} al ${fridayStr}`;
-
+                weekTitleEl.textContent = `Semana del ${monday.toLocaleDateString('es-ES', { day: 'numeric', month: monday.getMonth() !== friday.getMonth() ? 'long' : undefined })} al ${friday.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`;
                 const weekId = getWeekId(currentMonday);
                 const docRef = doc(db, `users/${userId}/weeks/${weekId}`);
                 const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    weeklyData = docSnap.data().data;
-                } else {
+                if (docSnap.exists()) { weeklyData = docSnap.data().data; }
+                else {
                     weeklyData = {};
                     Object.keys(scheduleTemplate).forEach(dayKey => {
                         weeklyData[dayKey] = scheduleTemplate[dayKey].map(block => ({...block, desc: '', id: self.crypto.randomUUID() }));
@@ -346,17 +328,13 @@
                 if (!userId || !db) return;
                 const weekId = getWeekId(currentMonday);
                 const docRef = doc(db, `users/${userId}/weeks/${weekId}`);
-                try {
-                    await setDoc(docRef, { data: weeklyData });
-                } catch (error) {
-                    console.error("Error al guardar los datos:", error);
-                }
+                try { await setDoc(docRef, { data: weeklyData }); }
+                catch (error) { console.error("Error al guardar los datos:", error); }
             }
             
             function drawTimetable(data) {
                 timetableContainer.innerHTML = '';
                 const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-
                 timetableContainer.appendChild(document.createElement('div'));
                 dayNames.forEach((dayName, dayIndex) => {
                     const dayDate = new Date(currentMonday);
@@ -366,43 +344,35 @@
                     dayHeader.innerHTML = `<span>${dayName}</span><span class="date-badge">${dayDate.getDate()}</span>`;
                     timetableContainer.appendChild(dayHeader);
                 });
-
                 timeSlots.forEach(slot => {
                     const timeHeader = document.createElement('div');
                     timeHeader.className = 'time-header';
                     timeHeader.textContent = slot.label;
                     timetableContainer.appendChild(timeHeader);
-
                     dayNames.forEach((_, dayIndex) => {
                         const dayKey = `day_${dayIndex}`;
                         const blocksForDay = data[dayKey] || [];
                         const blocksInSlot = blocksForDay.filter(b => b.time === slot.timeValue);
                         const mainClass = blocksInSlot.find(b => b.isClass);
-
                         if (mainClass) {
                             const card = document.createElement('div');
                             card.className = 'class-card';
-                            
                             let color = '#d1d5db';
                             if (mainClass.group.includes('Lengua')) color = '#7dd3fc';
                             else if (mainClass.group.includes('Latín')) color = '#fcd34d';
                             else if (mainClass.group.includes('Oratoria')) color = '#6ee7b7';
                             else if (mainClass.group.includes('ATEDU')) color = '#c4b5fd';
                             card.style.borderTop = `4px solid ${color}`;
-                            
                             const tasksInSlot = blocksInSlot.filter(b => !b.isClass);
                             card.innerHTML = `<div class="class-card-header"><p class="subject">${mainClass.group}</p></div><div class="tasks-container flex flex-col gap-2"></div>`;
-                            
                             const tasksContainer = card.querySelector('.tasks-container');
                             tasksInSlot.forEach(task => tasksContainer.appendChild(createBlockElement(task, dayIndex)));
-
                             const addBtn = document.createElement('button');
                             addBtn.className = 'add-task-btn';
                             addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Añadir tarea';
                             addBtn.dataset.dayIndex = dayIndex;
                             addBtn.dataset.time = slot.timeValue;
                             tasksContainer.appendChild(addBtn);
-                            
                             timetableContainer.appendChild(card);
                         } else {
                             timetableContainer.appendChild(document.createElement('div'));
@@ -446,7 +416,6 @@
             
             signInBtn.addEventListener('click', handleSignIn);
             signOutBtn.addEventListener('click', handleSignOut);
-
             timetableContainer.addEventListener('click', (e) => {
                 const addBtn = e.target.closest('.add-task-btn');
                 if (addBtn) { openEditModal(parseInt(addBtn.dataset.dayIndex), null, addBtn.dataset.time); return; }
@@ -459,13 +428,11 @@
                 const blockEl = e.target.closest('.task-block');
                 if (blockEl) { openEditModal(parseInt(blockEl.dataset.dayIndex), blockEl.dataset.blockId); }
             });
-
             modalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const { dayIndex, blockId } = currentEditing;
                 const dayKey = `day_${dayIndex}`;
                 const time = document.getElementById('block-time').value;
-
                 const mainClass = weeklyData[dayKey].find(b => b.time === time && b.isClass);
                 let newColor = 'color-blue';
                 if (mainClass) {
@@ -475,12 +442,10 @@
                     else if (subject.includes('Oratoria')) newColor = 'color-green';
                     else if (subject.includes('ATEDU')) newColor = 'color-purple';
                 }
-
                 const newBlockData = {
                     time: time, desc: document.getElementById('block-desc').value,
                     color: newColor, isClass: false
                 };
-
                 if (blockId) {
                     const idx = weeklyData[dayKey].findIndex(b => b.id === blockId);
                     newBlockData.id = blockId;
@@ -494,7 +459,6 @@
                 closeEditModal();
                 drawTimetable(weeklyData);
             });
-            
             confirmOkBtn.addEventListener('click', async () => {
                 const { dayIndex, blockId } = itemToDelete;
                 if (dayIndex !== null && blockId !== null) {
@@ -505,7 +469,6 @@
                 }
                 closeConfirmModal();
             });
-
             prevWeekBtn.addEventListener('click', () => { if(userId) { currentMonday.setDate(currentMonday.getDate() - 7); renderWeek(); }});
             nextWeekBtn.addEventListener('click', () => { if(userId) { currentMonday.setDate(currentMonday.getDate() + 7); renderWeek(); }});
             goTodayBtn.addEventListener('click', () => { if(userId) { currentMonday = getMonday(new Date()); renderWeek(); }});
