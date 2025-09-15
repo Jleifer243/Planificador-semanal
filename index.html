@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Planificador Escolar Sincronizado</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f3f4f6;
     }
+
     .header-gradient {
       background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
     }
+
     #loading-overlay {
       position: fixed;
       top: 0;
@@ -31,26 +33,31 @@
       z-index: 9999;
       transition: opacity 0.3s;
     }
+
     .timetable-grid {
       display: grid;
       grid-template-columns: 120px repeat(5, minmax(220px, 1fr));
       gap: 1rem;
     }
-    .day-header, .time-header {
+
+    .day-header,
+    .time-header {
       padding: 0.75rem 1rem;
       text-align: center;
       font-weight: 700;
       border-radius: 0.75rem;
     }
+
     .day-header {
       font-size: 1.25rem;
       color: white;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 0.5rem;
     }
+
     .time-header {
       font-size: 1rem;
       color: #374151;
@@ -59,11 +66,11 @@
       align-items: center;
       justify-content: center;
     }
-    /* Estilos adicionales para las celdas */
+
     .timetable-cell {
       background-color: #fff;
       border-radius: 0.75rem;
-      box-shadow: 0 2px 4px -2px rgba(0,0,0,0.07);
+      box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.07);
       display: flex;
       flex-direction: column;
       padding: 0.75rem 1rem;
@@ -71,6 +78,7 @@
       height: 100px;
       position: relative;
     }
+
     .save-btn {
       padding: 4px 12px;
       background: #60a5fa;
@@ -82,34 +90,117 @@
       font-size: 0.9rem;
       transition: background 0.2s;
     }
-    .save-btn:hover { background: #2563eb; }
+
+    .save-btn:hover {
+      background: #2563eb;
+    }
+
+    /* Modal styles */
+
+    .modal-container {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 1.5rem 2rem;
+      border-radius: 0.5rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
-<body>
-  <div class="max-w-screen-xl mx-auto mt-8">
-    <h1 class="text-3xl font-bold text-center py-6">Planificador Semanal</h1>
-    <div id="login-container" style="text-align:center; margin-bottom:32px;">
-      <button id="google-login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">Iniciar sesión con Google</button>
-    </div>
-    <div id="planner-container" style="display:none;">
-      <div class="header-gradient rounded-xl shadow-lg py-4 px-8 mb-8 flex items-center justify-between text-white">
-        <span class="text-2xl font-bold">Planificador Semanal</span>
-        <button id="logout-btn" class="bg-white text-indigo-600 font-bold px-4 py-2 rounded hover:bg-indigo-100 shadow transition">Cerrar sesión</button>
-      </div>
-      <div class="timetable-grid mb-8" id="timetable">
-        <!-- Aquí se genera la tabla con JS -->
-      </div>
-    </div>
-  </div>
 
+<body class="p-4 md:p-6">
+
+  <!-- Loading overlay -->
   <div id="loading-overlay">
     <span class="font-bold text-2xl mb-2">Conectando...</span>
   </div>
 
+  <!-- Modals -->
+  <div class="modal-container hidden" id="edit-modal">
+    <div class="modal-content">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800" id="modal-title">Añadir Tarea</h2>
+      <form id="modal-form">
+        <input id="block-time" type="hidden" />
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="block-desc">Descripción de la Tarea</label>
+          <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" id="block-desc" required rows="3"></textarea>
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold" id="cancel-btn" type="button">Cancelar</button>
+          <button class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-semibold" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-container hidden" id="confirm-modal">
+    <div class="modal-content text-center">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">¿Confirmar eliminación?</h2>
+      <p class="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+      <div class="flex justify-center space-x-4">
+        <button class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold" id="confirm-cancel-btn">Cancelar</button>
+        <button class="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold" id="confirm-ok-btn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-screen-xl mx-auto">
+    <header class="grid grid-cols-3 items-center mb-8 p-4 rounded-xl shadow-lg header-gradient text-white">
+      <div class="flex items-center space-x-2">
+        <button class="p-2 rounded-full hover:bg-white/20 transition-colors" id="prev-week" title="Semana anterior"><i
+            class="fas fa-chevron-left fa-fw"></i></button>
+        <button class="p-2 rounded-full hover:bg-white/20 transition-colors" id="next-week" title="Semana siguiente"><i
+            class="fas fa-chevron-right fa-fw"></i></button>
+      </div>
+      <h1 class="text-center text-2xl font-bold truncate" id="week-label">Semana 36 del 2023</h1>
+      <button id="logout-btn" class="bg-white text-indigo-600 font-bold px-4 py-2 rounded hover:bg-indigo-100 shadow transition">Cerrar sesión</button>
+    </header>
+
+    <div id="planner-container" style="display:none;">
+      <div class="timetable-grid mb-8" id="timetable">
+        <!-- Aquí se genera la tabla con JS -->
+      </div>
+      <button id="save-schedule" class="save-btn">Guardar horario</button>
+    </div>
+
+    <div id="login-container" style="text-align:center; margin-top: 6rem;">
+      <button id="google-login-btn"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">Iniciar
+        sesión con Google</button>
+    </div>
+  </div>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
@@ -125,16 +216,19 @@
     const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
 
+    // Planificador datos y controles básicos
+    const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    const hours = ["8:30", "9:30", "10:30", "11:30", "12:30", "13:30", "14:30"];
+
     const loadingOverlay = document.getElementById('loading-overlay');
     const plannerContainer = document.getElementById('planner-container');
     const timetableDiv = document.getElementById('timetable');
     const loginContainer = document.getElementById('login-container');
+    const logoutBtn = document.getElementById('logout-btn');
+    const weekLabel = document.getElementById('week-label');
+    const saveButton = document.getElementById('save-schedule');
 
-    // Días y horas para mostrar en el planificador
-    const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-    const hours = ["8:30", "9:30", "10:30", "11:30", "12:30", "13:30", "14:30"];
-
-    // Renderiza la tabla del horario
+    // Función para mostrar tabla de horario
     function renderTable(data) {
       let html = '';
       html += `<div class="time-header"></div>`;
@@ -155,15 +249,9 @@
         }
       }
       timetableDiv.innerHTML = html;
-      // Botón de guardar
-      let save = document.createElement("button");
-      save.textContent = "Guardar horario";
-      save.className = "save-btn";
-      save.onclick = saveData;
-      timetableDiv.appendChild(save);
     }
 
-    // Carga datos del usuario desde Firestore
+    // Cargar datos Firestore para usuario
     async function loadData(uid) {
       loadingOverlay.style.display = 'flex';
       try {
@@ -177,7 +265,7 @@
       loadingOverlay.style.display = 'none';
     }
 
-    // Guarda datos del usuario en Firestore
+    // Guardar datos Firestore para usuario
     async function saveData() {
       loadingOverlay.style.display = 'flex';
       const user = auth.currentUser;
@@ -190,7 +278,11 @@
         }
       }
       try {
-        await setDoc(doc(db, "users", user.uid), { timetable: timetableData }, { merge: true });
+        await setDoc(doc(db, "users", user.uid), {
+          timetable: timetableData
+        }, {
+          merge: true
+        });
         alert("Horario guardado correctamente.");
       } catch (err) {
         alert("Error al guardar horario: " + err.message);
@@ -198,7 +290,7 @@
       loadingOverlay.style.display = 'none';
     }
 
-    // Evento de login
+    // Botones y eventos
     document.getElementById('google-login-btn').onclick = () => {
       loadingOverlay.style.display = 'flex';
       signInWithPopup(auth, provider)
@@ -208,12 +300,13 @@
         });
     };
 
-    // Evento de logout
-    document.getElementById('logout-btn').onclick = () => {
+    logoutBtn.onclick = () => {
       signOut(auth);
     };
 
-    // Muestra u oculta elementos según login
+    saveButton.onclick = saveData;
+
+    // Gestion sesiones
     onAuthStateChanged(auth, (user) => {
       if (user) {
         loadingOverlay.style.display = 'flex';
@@ -227,6 +320,9 @@
         timetableDiv.innerHTML = '';
       }
     });
+
+    // Aquí puedes añadir más lógica para cambiar semana, modales, etc.
   </script>
 </body>
+
 </html>
