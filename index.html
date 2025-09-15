@@ -1,122 +1,91 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Planificador Escolar Elegante</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    /* TODO: aquí van tus CSS sin modificar */
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    .header-gradient { background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); }
+    .timetable-grid { display: grid; grid-template-columns: 120px repeat(5, minmax(220px, 1fr)); gap: 1rem; }
+    .day-header, .time-header { padding: 0.75rem 1rem; text-align: center; font-weight: 700; border-radius: 0.75rem; }
+    .day-header { font-size: 1.25rem; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+    .time-header { font-size: 1rem; color: #374151; background-color: #f9fafb; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
+    .day-header .date-badge { background-color: rgba(255,255,255,0.25); border-radius: 9999px; font-size: 0.875rem; font-weight: 600; padding: 0.125rem 0.5rem; }
+    .day-header-0 { background-color: #7dd3fc; } .day-header-1 { background-color: #6ee7b7; } .day-header-2 { background-color: #fcd34d; } .day-header-3 { background-color: #fda4af; } .day-header-4 { background-color: #c4b5fd; }
+    .class-card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; height: 100%; }
+    .class-card-header .subject { font-size: 1.1rem; font-weight: 700; color: #1f2937; }
+    .task-block { padding: 0.5rem 0.75rem; border-radius: 0.5rem; position: relative; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+    .task-block:hover { transform: translateY(-2px); box-shadow: 0 4px 12px 0 rgba(0,0,0,.08); }
+    .color-pink { background-color: #fce7f3; border-left: 4px solid #ec4899; }
+    .color-green { background-color: #dcfce7; border-left: 4px solid #22c55e; }
+    .color-blue { background-color: #dbeafe; border-left: 4px solid #3b82f6; }
+    .color-purple { background-color: #ede9fe; border-left: 4px solid #8b5cf6; }
+    .color-amber { background-color: #fef3c7; border-left: 4px solid #f59e0b; }
+    .delete-btn { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); color: #9ca3af; opacity: 0; transition: all .2s; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 9999px; }
+    .task-block:hover .delete-btn { opacity: 1; } .delete-btn:hover { color: #ef4444; background-color: #fee2e2; }
+    .add-task-btn { width: 100%; border: 2px dashed #d1d5db; color: #6b7280; padding: 0.5rem; border-radius: 0.5rem; transition: all .2s; font-weight: 500; font-size: .875rem; margin-top: auto; }
+    .add-task-btn:hover { background-color: #f9fafb; border-color: #9ca3af; color: #4b5563; }
+    .modal-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,.5); z-index: 40; display: grid; place-items: center; }
+    .modal-content { background-color: white; padding: 32px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); width: 100%; max-width: 480px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <!-- TODO: Aquí va tu HTML sin modificar, solo inserta debajo del header el botón de login -->
-  
-  <!-- Añadido Login -->
+  <!-- Login simple -->
   <div id="login-container" style="text-align:center; margin:1rem 0;">
     <button id="google-login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">
       Iniciar sesión
     </button>
   </div>
-  
-  <!-- Rest of your HTML e.g. planner etc -->
-
-  <!-- Loading Overlay -->
+  <!-- Tu overlay de carga -->
   <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;">
     <span class="font-bold text-2xl">Conectando...</span>
   </div>
+  <!-- El resto de tu HTML de planificación aquí (sin cambios en las clases, cuadrícula, etc). -->
 
-  <!-- Tu JS original aquí -->
-
-  <!-- Firebase and Auth -->
+  <!-- Bloque de Firebase SOLO redirect para github.io -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { initializeAuth, browserPopupRedirectResolver, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { initializeAuth, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, browserPopupRedirectResolver, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
-  authDomain: "planificador-final-app.firebaseapp.com",
-  projectId: "planificador-final-app",
-  storageBucket: "planificador-final-app.appspot.com",
-  messagingSenderId: "1018171067065",
-  appId: "1:1018171067065:web:201a8d7ba1445e73afa968"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
+      authDomain: "planificador-final-app.firebaseapp.com",
+      projectId: "planificador-final-app",
+      storageBucket: "planificador-final-app.appspot.com",
+      messagingSenderId: "1018171067065",
+      appId: "1:1018171067065:web:201a8d7ba1445e73afa968"
+    };
 
     const app = initializeApp(firebaseConfig);
-
     const auth = initializeAuth(app, {
       persistence: [browserLocalPersistence, browserSessionPersistence, inMemoryPersistence],
       popupRedirectResolver: browserPopupRedirectResolver
     });
-
     const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
 
     const loginBtn = document.getElementById("google-login-btn");
     const loadingOverlay = document.getElementById("loading-overlay");
 
-    function getMonday(d) {
-      d = new Date(d);
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      d.setHours(0, 0, 0, 0);
-      return new Date(d.setDate(diff));
-    }
-
-    function getWeekId(d) {
-      const monday = getMonday(d);
-      const y = monday.getFullYear();
-      const mo = String(monday.getMonth() + 1).padStart(2, "0");
-      const da = String(monday.getDate()).padStart(2, "0");
-      return `planner-${y}-${mo}-${da}`;
-    }
-
-    const _originalSetItem = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function (key, value) {
-      _originalSetItem(key, value);
-      if (key.startsWith("planner-")) {
-        const user = auth.currentUser;
-        if (user) {
-          try {
-            const payload = JSON.parse(value);
-            setDoc(doc(db, "users", user.uid), { planner: { [key]: payload } }, { merge: true });
-          } catch (e) {
-            console.error("Sync error:", e);
-          }
-        }
-      }
-    };
-
+    // SOLO redirect
     if (loginBtn) {
-      loginBtn.onclick = async () => {
+      loginBtn.onclick = () => {
         loadingOverlay.style.display = "flex";
-        try {
-          await signInWithPopup(auth, provider);
-        } catch (error) {
-          if (
-            error.code === "auth/popup-blocked" ||
-            error.code === "auth/cancelled-popup-request" ||
-            error.code === "auth/popup-closed-by-user"
-          ) {
-            await signInWithRedirect(auth, provider);
-          } else {
-            alert("Error al iniciar sesión: " + (error.message || error));
-            loadingOverlay.style.display = "none";
-          }
-        }
+        signInWithRedirect(auth, provider);
       };
     }
 
     getRedirectResult(auth)
-      .then(() => {
-        loadingOverlay.style.display = "none";
-      })
+      .then(() => { loadingOverlay.style.display = "none"; })
       .catch((error) => {
         loadingOverlay.style.display = "none";
-        alert("Error en el proceso de retorno: " + (error.message || error));
+        alert("Error en login (redirect): " + (error && error.message ? error.message : error));
       });
 
     onAuthStateChanged(auth, async (user) => {
@@ -128,7 +97,7 @@
             for (const [key, value] of Object.entries(snap.data().planner)) {
               localStorage.setItem(key, JSON.stringify(value));
             }
-            const goTodayBtn = document.getElementById("go_today");
+            const goTodayBtn = document.getElementById("go-today");
             if (goTodayBtn) goTodayBtn.click();
           }
         } catch (e) {
@@ -142,13 +111,3 @@
   </script>
 </body>
 </html>
-
-**Nota importante:**
-- Añade en Firebase Console -> Authentication la URL de tu proyecto GitHub Pages en “Autorizados dominios”, esto es fundamental para el correcto funcionamiento del login Google.
-- Siempre usa https o un servidor local en desarrollo, no abras el archivo como `file://`, porque no funciona OAUTH allí.
-- El botón de login asume tiene el ID `google-login-btn` y el overlay tiene el ID `loading-overlay`.
-- El resto del código del planner es el tuyo sin tocar.
-
-Si quieres que te lo prepare para subirlo directamente a GitHub Pages, solo dime.
-
-
