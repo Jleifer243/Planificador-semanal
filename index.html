@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Planificador Semanal</title>
+  <title>Planificador Escolar Sincronizado</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,30 +13,104 @@
       font-family: 'Inter', sans-serif;
       background-color: #f3f4f6;
     }
+    .header-gradient {
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+    }
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.9);
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.3s;
+    }
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: 120px repeat(5, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .day-header, .time-header {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      font-weight: 700;
+      border-radius: 0.75rem;
+    }
+    .day-header {
+      font-size: 1.25rem;
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .time-header {
+      font-size: 1rem;
+      color: #374151;
+      background-color: #f9fafb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Estilos adicionales para las celdas */
+    .timetable-cell {
+      background-color: #fff;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 4px -2px rgba(0,0,0,0.07);
+      display: flex;
+      flex-direction: column;
+      padding: 0.75rem 1rem;
+      min-height: 60px;
+      height: 100px;
+      position: relative;
+    }
+    .save-btn {
+      padding: 4px 12px;
+      background: #60a5fa;
+      color: #fff;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .save-btn:hover { background: #2563eb; }
   </style>
 </head>
 <body>
-  <div class="max-w-screen-xl mx-auto">
+  <div class="max-w-screen-xl mx-auto mt-8">
     <h1 class="text-3xl font-bold text-center py-6">Planificador Semanal</h1>
-    <!-- Login Google -->
     <div id="login-container" style="text-align:center; margin-bottom:32px;">
       <button id="google-login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">Iniciar sesión con Google</button>
     </div>
+    <div id="planner-container" style="display:none;">
+      <div class="header-gradient rounded-xl shadow-lg py-4 px-8 mb-8 flex items-center justify-between text-white">
+        <span class="text-2xl font-bold">Planificador Semanal</span>
+        <button id="logout-btn" class="bg-white text-indigo-600 font-bold px-4 py-2 rounded hover:bg-indigo-100 shadow transition">Cerrar sesión</button>
+      </div>
+      <div class="timetable-grid mb-8" id="timetable">
+        <!-- Aquí se genera la tabla con JS -->
+      </div>
+    </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:10; align-items:center; justify-content:center; flex-direction:column;">
+  <div id="loading-overlay">
     <span class="font-bold text-2xl mb-2">Conectando...</span>
   </div>
 
-  <!-- Firebase Libraries y lógica principal -->
   <script type="module">
-    // Importar módulos Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Configuración del proyecto Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
       authDomain: "planificador-final-app.firebaseapp.com",
@@ -46,16 +120,85 @@
       appId: "1:1.018171067065e+12:web:201a8d7ba1445e73afa968"
     };
 
-    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
 
-    // Mostrar overlay de carga mientras no hay usuario
     const loadingOverlay = document.getElementById('loading-overlay');
+    const plannerContainer = document.getElementById('planner-container');
+    const timetableDiv = document.getElementById('timetable');
+    const loginContainer = document.getElementById('login-container');
 
-    // Evento del botón de login
+    // Días y horas para mostrar en el planificador
+    const days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    const hours = ["8:30", "9:30", "10:30", "11:30", "12:30", "13:30", "14:30"];
+
+    // Renderiza la tabla del horario
+    function renderTable(data) {
+      let html = '';
+      html += `<div class="time-header"></div>`;
+      for (let d = 0; d < days.length; d++) {
+        html += `<div class="day-header">${days[d]}</div>`;
+      }
+      for (let h = 0; h < hours.length; h++) {
+        html += `<div class="time-header">${hours[h]}</div>`;
+        for (let d = 0; d < days.length; d++) {
+          const cellKey = `${days[d]}_${hours[h]}`;
+          const cellValue = data[cellKey] || "";
+          html += `
+            <div class="timetable-cell">
+              <input type="text" class="w-full px-2 py-1 rounded border border-gray-200"
+                id="${cellKey}" value="${cellValue}" placeholder="Clase o tarea..." />
+            </div>
+          `;
+        }
+      }
+      timetableDiv.innerHTML = html;
+      // Botón de guardar
+      let save = document.createElement("button");
+      save.textContent = "Guardar horario";
+      save.className = "save-btn";
+      save.onclick = saveData;
+      timetableDiv.appendChild(save);
+    }
+
+    // Carga datos del usuario desde Firestore
+    async function loadData(uid) {
+      loadingOverlay.style.display = 'flex';
+      try {
+        const docRef = doc(db, "users", uid);
+        const snap = await getDoc(docRef);
+        const data = (snap.exists() && snap.data().timetable) ? snap.data().timetable : {};
+        renderTable(data);
+      } catch (err) {
+        alert("Error al cargar horario: " + err.message);
+      }
+      loadingOverlay.style.display = 'none';
+    }
+
+    // Guarda datos del usuario en Firestore
+    async function saveData() {
+      loadingOverlay.style.display = 'flex';
+      const user = auth.currentUser;
+      if (!user) return;
+      let timetableData = {};
+      for (let d of days) {
+        for (let h of hours) {
+          const key = `${d}_${h}`;
+          timetableData[key] = document.getElementById(key).value;
+        }
+      }
+      try {
+        await setDoc(doc(db, "users", user.uid), { timetable: timetableData }, { merge: true });
+        alert("Horario guardado correctamente.");
+      } catch (err) {
+        alert("Error al guardar horario: " + err.message);
+      }
+      loadingOverlay.style.display = 'none';
+    }
+
+    // Evento de login
     document.getElementById('google-login-btn').onclick = () => {
       loadingOverlay.style.display = 'flex';
       signInWithPopup(auth, provider)
@@ -65,15 +208,23 @@
         });
     };
 
-    // Ocultar overlay cuando el usuario está autenticado
+    // Evento de logout
+    document.getElementById('logout-btn').onclick = () => {
+      signOut(auth);
+    };
+
+    // Muestra u oculta elementos según login
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        loadingOverlay.style.display = 'none';
-        document.getElementById('login-container').style.display = 'none';
-        // Aquí puede ir tu lógica para mostrar el planificador y acceder a Firestore
+        loadingOverlay.style.display = 'flex';
+        loginContainer.style.display = 'none';
+        plannerContainer.style.display = 'block';
+        loadData(user.uid);
       } else {
+        loginContainer.style.display = 'block';
+        plannerContainer.style.display = 'none';
         loadingOverlay.style.display = 'none';
-        document.getElementById('login-container').style.display = 'block';
+        timetableDiv.innerHTML = '';
       }
     });
   </script>
