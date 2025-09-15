@@ -123,7 +123,7 @@
 <body class="p-4 md:p-6">
     <!-- Loading Overlay -->
     <div id="loading-overlay">
-        <div id="loading-text" class="text-xl font-semibold text-gray-700">Conectando...</div>
+        <div id="loading-text" class="text-xl font-semibold text-gray-700 text-center">Conectando...</div>
     </div>
     
     <!-- Modals -->
@@ -263,7 +263,12 @@
                     db = getFirestore(app);
                     auth = getAuth(app);
                     
+                    let connectionTimeout = setTimeout(() => {
+                        loadingText.innerHTML = `<div class="text-red-600 font-bold text-center p-4">La conexión está tardando demasiado.<br/>Por favor, verifica que la ubicación de tu base de datos en Firebase es 'eur3 (europe-west)'.</div>`;
+                    }, 10000); // 10 segundos de tiempo de espera
+
                     onAuthStateChanged(auth, async (user) => {
+                        clearTimeout(connectionTimeout); // Si recibe respuesta, cancela el temporizador.
                         if (user) {
                             userId = user.uid;
                             userPhoto.src = user.photoURL;
@@ -482,4 +487,27 @@
     </script>
 </body>
 </html>
+```
+
+### 2. La Lista de Verificación Final
+
+Después de subir el código, por favor, ve a tu proyecto de Firebase **`planificador-final-app`** y comprueba estos 4 puntos. Si uno de ellos falla, el código no funcionará.
+
+1.  **Ubicación de la Base de Datos:**
+    * Ve a **Compilación > Firestore Database**.
+    * En la pestaña **Datos**, arriba, debe aparecer la ubicación. Asegúrate de que ponga **`eur3 (europe-west)`**. Si pone `us-central` o cualquier otra cosa, este es el problema.
+
+2.  **Reglas de Seguridad:**
+    * En **Firestore Database**, ve a la pestaña **Reglas**.
+    * Asegúrate de que el código sea exactamente este:
+        ```
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /users/{userId}/{allPaths=**} {
+              allow read, write: if request.auth != null && request.auth.uid == userId;
+            }
+          }
+        }
+        
 
