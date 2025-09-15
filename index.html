@@ -152,7 +152,7 @@
              </div>
         </header>
 
-        <!-- Botón de login (añadido sin tocar estilos) -->
+        <!-- Botón login (añadido sin alterar estilos del planner) -->
         <div id="login-container" style="text-align:center; margin-bottom:16px;">
             <button id="google-login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">
                 Iniciar sesión con Google
@@ -408,15 +408,15 @@
         });
     </script>
 
-    <!-- Overlay de carga (añadido sin afectar al layout) -->
+    <!-- Overlay de carga -->
     <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:9999; justify-content:center; align-items:center;">
       <span class="font-bold text-2xl mb-2">Conectando...</span>
     </div>
 
-    <!-- Integración Firebase (no intrusiva) -->
+    <!-- Integración Firebase con redirect (recomendado para GitHub Pages) -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
       import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
       const firebaseConfig = {
@@ -451,7 +451,7 @@
         return `planner-${y}-${mo}-${da}`;
       }
 
-      // Sincronización: intercepta setItem para subir a Firestore sin tocar tu lógica
+      // Al guardar en localStorage, también sube a Firestore (sin tocar tu lógica)
       const _setItem = localStorage.setItem.bind(localStorage);
       localStorage.setItem = function(key, value){
         _setItem(key, value);
@@ -469,12 +469,21 @@
       if(loginBtn){
         loginBtn.addEventListener('click', ()=>{
           loadingOverlay.style.display = 'flex';
-          signInWithPopup(auth, provider).catch(err=>{
-            loadingOverlay.style.display = 'none';
-            alert('Error en el login: ' + err.message);
-          });
+          signInWithRedirect(auth, provider); // redirect recomendado para hosts estáticos
         });
       }
+
+      // Consumir el resultado del redirect al volver
+      getRedirectResult(auth)
+        .then(() => {
+          loadingOverlay.style.display = 'none';
+        })
+        .catch((error) => {
+          loadingOverlay.style.display = 'none';
+          if(error && error.message){
+            alert('Error en login (redirect): ' + error.message);
+          }
+        });
 
       onAuthStateChanged(auth, async (user)=>{
         if(user){
@@ -483,7 +492,6 @@
           try{
             const snap = await getDoc(doc(db,'users',user.uid));
             if(snap.exists() && snap.data().planner && snap.data().planner[weekId]){
-              // Carga desde Firestore al localStorage que usa tu UI
               _setItem(weekId, JSON.stringify(snap.data().planner[weekId]));
               const goToday = document.getElementById('go-today');
               if(goToday){ goToday.click(); }
