@@ -3,153 +3,320 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Planificador Semanal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Planificador Escolar Elegante</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
-    .header-gradient {
-      background: linear-gradient(90deg,#86c1f2 0%,#a288fa 100%);
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 0;
     }
-    .day-tab { font-size: 1.15rem; font-weight: 700; }
-    .task-box { min-height: 48px; border: 2px dashed #d1d5db; padding: 10px; border-radius: 12px; background:#fff; transition: box-shadow .2s; }
-    .task-box:focus { outline: 2px solid #6366f1; box-shadow: 0 2px 8px 0 #a5b4fc44; }
-    .subject-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-    .hour-label { background: #fff; border-radius: 12px; font-weight: 600; font-size: 1.14rem; color: #6366f1; box-shadow: 0 1px 4px #0001; }
-    .tab-lunes { background: #38bdf8; color: #fff;}
-    .tab-martes { background: #34d399; color: #fff;}
-    .tab-miercoles { background: #fde047; color: #a16207;}
-    .tab-jueves { background: #f472b6; color: #fff;}
-    .tab-viernes { background: #a78bfa; color: #fff;}
-    .card-lunes {border:2px solid #38bdf8;}
-    .card-martes {border:2px solid #34d399;}
-    .card-miercoles {border:2px solid #fde047;}
-    .card-jueves {border:2px solid #f472b6;}
-    .card-viernes {border:2px solid #a78bfa;}
+    header {
+      background: linear-gradient(90deg, #86c1f2 0%, #a288fa 100%);
+      padding: 1.5rem 0 2rem 0;
+      text-align: center;
+      font-weight: 800;
+      font-size: 2.2rem;
+      color: white;
+      letter-spacing: 0.05em;
+      user-select: none;
+      border-bottom-left-radius: 1.5rem;
+      border-bottom-right-radius: 1.5rem;
+    }
+    .week-navigator {
+      margin: 1rem auto .5rem auto;
+      max-width: 85rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      align-items: center;
+      font-weight: 600;
+      color: #4b5563;
+      font-size: 1.1rem;
+      user-select: none;
+    }
+    .week-navigator button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: #6366f1;
+      transition: color 0.3s ease;
+    }
+    .week-navigator button:hover {
+      color: #4338ca;
+    }
+    .week-navigator .date-desc {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #4338ca;
+    }
+    .grid-container {
+      max-width: 85rem;
+      margin: 0 auto 2rem auto;
+      display: grid;
+      grid-template-columns: 6.5rem repeat(5, 1fr);
+      grid-template-rows: 3.5rem repeat(3, 1fr);
+      gap: 1rem;
+      user-select: none;
+    }
+    .day-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      color: white;
+      height: 100%;
+      margin: 0;
+      box-shadow: 0 3px 10px rgb(0 0 0 / 0.05);
+      user-select: none;
+    }
+    .day-tab.lunes    { background-color: #38bdf8; }
+    .day-tab.martes   { background-color: #34d399; }
+    .day-tab.miercoles{ background-color: #fde047; color: #92400e;}
+    .day-tab.jueves   { background-color: #f472b6; }
+    .day-tab.viernes  { background-color: #a78bfa; }
+    .day-tab sup {
+      background: rgba(255 255 255 / 0.3);
+      padding: 0.1em 0.4em;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      margin-left: 0.25em;
+      vertical-align: top;
+      color: white;
+      user-select: none;
+    }
+    .hour-slot {
+      grid-row: span 1;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+      user-select: none;
+      height: 100%;
+    }
+    .card {
+      background: white;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      box-shadow: 0 1px 4px rgb(0 0 0 / 0.07);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      font-size: 0.9rem;
+      position: relative;
+    }
+    .subject-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #111827;
+      user-select: none;
+      margin-bottom: .25rem;
+    }
+    .task-editable {
+      border: 2px dashed #d1d5db;
+      border-radius: 0.75rem;
+      padding: 0.6rem;
+      min-height: 3.25rem;
+      cursor: text;
+      font-weight: 500;
+      font-size: 0.93rem;
+      color: #374151;
+      background: white;
+      outline: none;
+      user-select: text;
+      transition: border-color .25s, background-color .25s;
+      resize: none;
+      overflow-y: auto;
+      max-height: 90px;
+    }
+    .card-latin4      { border: 2px solid #38bdf8; }
+    .card-latin4 .task-editable:focus { border-color: #38bdf8; background: #dbf0ff; }
+    .card-lengua4     { border: 2px solid #34d399; }
+    .card-lengua4 .task-editable:focus { border-color: #34d399; background: #cef6e8; }
+    .card-oratoria    { border: 2px solid #fde047; }
+    .card-oratoria .task-editable:focus { border-color: #fde047; background: #fef9c3; }
+    .card-atedu3      { border: 2px solid #a78bfa; }
+    .card-atedu3 .task-editable:focus { border-color: #a78bfa; background: #e9dbff; }
   </style>
 </head>
 <body>
-  <div class="header-gradient p-6 rounded-b-2xl mb-4 shadow">
-    <h1 class="text-3xl font-extrabold text-center text-white tracking-wide">Semana del 15 al 19 de septiembre de 2025</h1>
+  <header>Planificador Escolar Elegante</header>
+  <div class="week-navigator">
+    <button id="prev-week">&#8592;</button>
+    <div id="week-display" class="date-desc">Semana del 15 al 19 de septiembre de 2025</div>
+    <button id="next-week">&#8594;</button>
   </div>
-  <div class="flex justify-center mb-6 gap-3">
-    <div class="day-tab tab-lunes px-6 py-2 rounded-xl shadow">Lunes <sup>15</sup></div>
-    <div class="day-tab tab-martes px-6 py-2 rounded-xl shadow">Martes <sup>16</sup></div>
-    <div class="day-tab tab-miercoles px-6 py-2 rounded-xl shadow">Miércoles <sup>17</sup></div>
-    <div class="day-tab tab-jueves px-6 py-2 rounded-xl shadow">Jueves <sup>18</sup></div>
-    <div class="day-tab tab-viernes px-6 py-2 rounded-xl shadow">Viernes <sup>19</sup></div>
-  </div>
-  <div class="grid grid-cols-6 gap-3 max-w-6xl mx-auto">
+  <div class="grid-container" id="schedule-grid">
     <div></div>
-    <div class="hour-label text-center py-2">Lunes</div>
-    <div class="hour-label text-center py-2">Martes</div>
-    <div class="hour-label text-center py-2">Miércoles</div>
-    <div class="hour-label text-center py-2">Jueves</div>
-    <div class="hour-label text-center py-2">Viernes</div>
-    
-    <!-- 1ª Hora -->
-    <div class="hour-label flex items-center justify-center h-24">1ª Hora</div>
-
-    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col">
+    <div class="day-tab lunes">Lunes <sup>15</sup></div>
+    <div class="day-tab martes">Martes <sup>16</sup></div>
+    <div class="day-tab miercoles">Miércoles <sup>17</sup></div>
+    <div class="day-tab jueves">Jueves <sup>18</sup></div>
+    <div class="day-tab viernes">Viernes <sup>19</sup></div>
+    <div class="hour-slot">1ª Hora</div>
+    <div class="card card-latin4">
       <div class="subject-title">Latín 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="lunes" data-hora="1" data-asignatura="latin4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="lunes" data-hora="1" data-asignatura="latin4"></div>
     </div>
-    <div class="p-2 card-martes rounded-xl bg-white flex flex-col">
+    <div class="card card-latin4">
       <div class="subject-title">Latín 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="martes" data-hora="1" data-asignatura="latin4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="martes" data-hora="1" data-asignatura="latin4"></div>
     </div>
-    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+    <div class="card card-oratoria">
       <div class="subject-title">Oratoria y Debate 3º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="1" data-asignatura="oratoria"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="miercoles" data-hora="1" data-asignatura="oratoria"></div>
     </div>
-    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col">
+    <div class="card card-oratoria">
       <div class="subject-title">Oratoria y Debate 3º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="jueves" data-hora="1" data-asignatura="oratoria"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="jueves" data-hora="1" data-asignatura="oratoria"></div>
     </div>
-    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+    <div class="card card-lengua4">
       <div class="subject-title">Lengua 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="1" data-asignatura="lengua4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="viernes" data-hora="1" data-asignatura="lengua4"></div>
     </div>
-
-    <!-- 2ª Hora -->
-    <div class="hour-label flex items-center justify-center h-24">2ª Hora</div>
-    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col">
+    <div class="hour-slot">2ª Hora</div>
+    <div class="card card-lengua4">
       <div class="subject-title">Lengua 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="lunes" data-hora="2" data-asignatura="lengua4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="lunes" data-hora="2" data-asignatura="lengua4"></div>
     </div>
-    <div class="p-2 card-martes rounded-xl bg-white flex flex-col">
+    <div class="card card-lengua4">
       <div class="subject-title">Lengua 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="martes" data-hora="2" data-asignatura="lengua4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="martes" data-hora="2" data-asignatura="lengua4"></div>
     </div>
-    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+    <div class="card card-latin4">
       <div class="subject-title">Latín 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="2" data-asignatura="latin4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="miercoles" data-hora="2" data-asignatura="latin4"></div>
     </div>
-    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col">
+    <div class="card card-latin4">
       <div class="subject-title">Latín 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="jueves" data-hora="2" data-asignatura="latin4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="jueves" data-hora="2" data-asignatura="latin4"></div>
     </div>
-    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+    <div class="card card-atedu3">
       <div class="subject-title">ATEDU 3º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="2" data-asignatura="atedu3"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="viernes" data-hora="2" data-asignatura="atedu3"></div>
     </div>
-
-    <!-- 3ª Hora -->
-    <div class="hour-label flex items-center justify-center h-24">3ª Hora</div>
-    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col"></div>
-    <div class="p-2 card-martes rounded-xl bg-white flex flex-col"></div>
-    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+    <div class="hour-slot">3ª Hora</div>
+    <div class="card"></div>
+    <div class="card"></div>
+    <div class="card card-lengua4">
       <div class="subject-title">Lengua 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="3" data-asignatura="lengua4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="miercoles" data-hora="3" data-asignatura="lengua4"></div>
     </div>
-    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col"></div>
-    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+    <div class="card"></div>
+    <div class="card card-lengua4">
       <div class="subject-title">Lengua 4º ESO</div>
-      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="3" data-asignatura="lengua4"></div>
+      <div class="task-editable editable-cell" contenteditable="true" data-dia="viernes" data-hora="3" data-asignatura="lengua4"></div>
     </div>
   </div>
   <script>
-    const scriptURL = 
-https://script.google.com/macros/s/AKfycbwJEggeAiGraKBi0M4XegxSXTscID3Qqv2N0-ykDzTpyAt5Uc1JFDIfj4U1uJwbkIpr/exec;
-    async function cargarDatos() {
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxEu0kLF63TYMsZccGIPE1zZhV3mFsR5TfczXIwFAUy155T9AoMwtPbXdZJPiIEVVK-/exec';
+    const startDate = new Date(2025, 8, 15); // 15 septiembre 2025
+    const endDate = new Date(2026, 5, 30); // 30 junio 2026
+    let currentMonday = new Date(startDate);
+
+    const dayTabs = document.querySelectorAll('.grid-container .day-tab');
+    const weekDisplay = document.getElementById('week-display');
+    const prevWeekBtn = document.getElementById('prev-week');
+    const nextWeekBtn = document.getElementById('next-week');
+    const editableCells = document.querySelectorAll('.editable-cell');
+
+    function formatDate(date) {
+      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+    }
+
+    function updateHeaderDates() {
+      for (let i = 0; i < 5; i++) {
+        const day = new Date(currentMonday);
+        day.setDate(currentMonday.getDate() + i);
+        dayTabs[i].innerHTML = dayTabs[i].textContent.split(' ')[0] + ` <sup>${day.getDate()}</sup>`;
+      }
+      const mondayCopy = new Date(currentMonday);
+      const friday = new Date(currentMonday);
+      friday.setDate(currentMonday.getDate() + 4);
+      weekDisplay.textContent = `Semana del ${formatDate(mondayCopy)} al ${formatDate(friday)} de 2025`;
+
+      prevWeekBtn.disabled = currentMonday <= startDate;
+      nextWeekBtn.disabled = currentMonday >= endDate;
+    }
+
+    function changeWeek(offset) {
+      const newMonday = new Date(currentMonday);
+      newMonday.setDate(currentMonday.getDate() + 7 * offset);
+      if (newMonday >= startDate && newMonday <= endDate) {
+        currentMonday = newMonday;
+        loadTasksForWeek();
+        updateHeaderDates();
+      }
+    }
+
+    function formatWeekKey(date) {
+      const year = date.getFullYear();
+      const firstJan = new Date(year, 0, 1);
+      const pastDaysOfYear = (date - firstJan) / 86400000;
+      const weekNumber = Math.ceil((pastDaysOfYear + firstJan.getDay() + 1) / 7);
+      return `${year}-W${weekNumber}`;
+    }
+
+    async function loadTasksForWeek() {
+      editableCells.forEach(cell => {
+        cell.textContent = '';
+      });
+
+      const weekKey = formatWeekKey(currentMonday);
       try {
-        const res = await fetch(`${scriptURL}?action=load`);
-        const data = await res.json();
+        const response = await fetch(`${scriptURL}?action=load`);
+        const data = await response.json();
+
         data.forEach(item => {
-          const celda = document.querySelector(
-            `[data-dia="${item.dia}"][data-hora="${item.hora}"][data-asignatura="${item.asignatura}"]`
-          );
-          if (celda) {
-            celda.textContent = item.contenido;
+          if (item.semana === weekKey) {
+            const selector = `.editable-cell[data-dia="${item.dia}"][data-hora="${item.hora}"][data-asignatura="${item.asignatura}"]`;
+            const cell = document.querySelector(selector);
+            if (cell) {
+              cell.textContent = item.contenido;
+            }
           }
         });
-      } catch (e) {
-        console.error('Error al cargar datos', e);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
       }
     }
-    async function guardarDato(dia, hora, asignatura, contenido) {
+
+    async function saveTask(dia, hora, asignatura, contenido) {
+      const semana = formatWeekKey(currentMonday);
       try {
         await fetch(
-          `${scriptURL}?action=save&dia=${dia}&hora=${hora}&asignatura=${asignatura}&contenido=${encodeURIComponent(contenido)}`
+          `${scriptURL}?action=save&dia=${dia}&hora=${hora}&asignatura=${asignatura}&contenido=${encodeURIComponent(
+            contenido
+          )}&semana=${semana}`
         );
-      } catch (e) {
-        console.error('Error al guardar dato', e);
+      } catch (error) {
+        console.error('Error saving task:', error);
       }
     }
-    document.addEventListener('DOMContentLoaded', () => {
-      cargarDatos();
-      const celdas = document.querySelectorAll('.editable-cell');
-      celdas.forEach((celda) => {
-        celda.addEventListener('input', (e) => {
-          const el = e.target;
-          const dia = el.getAttribute('data-dia');
-          const hora = el.getAttribute('data-hora');
-          const asignatura = el.getAttribute('data-asignatura');
-          const contenido = el.textContent;
-          guardarDato(dia, hora, asignatura, contenido);
-        });
+
+    editableCells.forEach(cell => {
+      cell.addEventListener('input', e => {
+        const el = e.target;
+        saveTask(el.getAttribute('data-dia'), el.getAttribute('data-hora'), el.getAttribute('data-asignatura'), el.textContent);
       });
     });
+
+    prevWeekBtn.addEventListener('click', () => changeWeek(-1));
+    nextWeekBtn.addEventListener('click', () => changeWeek(1));
+
+    updateHeaderDates();
+    loadTasksForWeek();
   </script>
 </body>
 </html>
