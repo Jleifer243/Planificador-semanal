@@ -153,9 +153,9 @@
 <body>
   <header>Planificador Escolar Elegante</header>
   <div class="week-navigator">
-    <button id="prev-week">&#8592;</button>
+    <button id="prev-week">←</button>
     <div id="week-display" class="date-desc">Semana del 15 al 19 de septiembre de 2025</div>
-    <button id="next-week">&#8594;</button>
+    <button id="next-week">→</button>
   </div>
   <div class="grid-container" id="schedule-grid">
     <div></div>
@@ -220,9 +220,7 @@
     </div>
   </div>
   <script>
-    const scriptURL = 
-https://script.google.com/macros/s/AKfycbwVwVMKL9BqGUMXBzbvU-XQjujDuC-Nr21hdbrOlhBLmFUjDLrMdMTjI75_YGu2Guib/exec;
-
+    const scriptURL = 'https://script.google.com/macros/s/AKfycby0wxGqkYNbPc42mlPXyZIjAj79yhUnlSK2q8N4CmoD4AkB_xvdG-JUtEiL8U1xNjPL/exec';
     const startDate = new Date(2025, 8, 15); // 15 septiembre 2025
     const endDate = new Date(2026, 5, 30); // 30 junio 2026
     let currentMonday = new Date(startDate);
@@ -270,22 +268,34 @@ https://script.google.com/macros/s/AKfycbwVwVMKL9BqGUMXBzbvU-XQjujDuC-Nr21hdbrOl
       return `${year}-W${weekNumber}`;
     }
 
+    // Mapa colores asignaturas
+    function getColorForAsignatura(asignatura) {
+      switch (asignatura) {
+        case 'latin4': return '#dbf0ff';
+        case 'oratoria': return '#fef9c3';
+        case 'lengua4': return '#cef6e8';
+        case 'atedu3': return '#e9dbff';
+        default: return 'transparent';
+      }
+    }
+
+    // Carga tareas mostrando fondo coloreado
     async function loadTasksForWeek() {
       editableCells.forEach(cell => {
         cell.textContent = '';
+        cell.style.backgroundColor = '';
       });
-
       const weekKey = formatWeekKey(currentMonday);
       try {
         const response = await fetch(`${scriptURL}?action=load`);
         const data = await response.json();
-
         data.forEach(item => {
           if (item.semana === weekKey) {
             const selector = `.editable-cell[data-dia="${item.dia}"][data-hora="${item.hora}"][data-asignatura="${item.asignatura}"]`;
             const cell = document.querySelector(selector);
             if (cell) {
               cell.textContent = item.contenido;
+              cell.style.backgroundColor = getColorForAsignatura(item.asignatura);
             }
           }
         });
@@ -293,6 +303,15 @@ https://script.google.com/macros/s/AKfycbwVwVMKL9BqGUMXBzbvU-XQjujDuC-Nr21hdbrOl
         console.error('Error fetching tasks:', error);
       }
     }
+
+    // Al guardar pon fondo coloreado
+    editableCells.forEach(cell => {
+      cell.addEventListener('input', e => {
+        const el = e.target;
+        saveTask(el.getAttribute('data-dia'), el.getAttribute('data-hora'), el.getAttribute('data-asignatura'), el.textContent);
+        el.style.backgroundColor = getColorForAsignatura(el.getAttribute('data-asignatura'));
+      });
+    });
 
     async function saveTask(dia, hora, asignatura, contenido) {
       const semana = formatWeekKey(currentMonday);
@@ -306,13 +325,6 @@ https://script.google.com/macros/s/AKfycbwVwVMKL9BqGUMXBzbvU-XQjujDuC-Nr21hdbrOl
         console.error('Error saving task:', error);
       }
     }
-
-    editableCells.forEach(cell => {
-      cell.addEventListener('input', e => {
-        const el = e.target;
-        saveTask(el.getAttribute('data-dia'), el.getAttribute('data-hora'), el.getAttribute('data-asignatura'), el.textContent);
-      });
-    });
 
     prevWeekBtn.addEventListener('click', () => changeWeek(-1));
     nextWeekBtn.addEventListener('click', () => changeWeek(1));
