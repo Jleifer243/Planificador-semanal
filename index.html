@@ -1,112 +1,154 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Planificador Escolar Elegante</title>
+  <title>Planificador Semanal</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-    .header-gradient { background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); }
-    .timetable-grid { display: grid; grid-template-columns: 120px repeat(5, minmax(220px, 1fr)); gap: 1rem; }
-    .day-header, .time-header { padding: 0.75rem 1rem; text-align: center; font-weight: 700; border-radius: 0.75rem; }
-    .day-header { font-size: 1.25rem; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
-    .time-header { font-size: 1rem; color: #374151; background-color: #f9fafb; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
-    .day-header .date-badge { background-color: rgba(255,255,255,0.25); border-radius: 9999px; font-size: 0.875rem; font-weight: 600; padding: 0.125rem 0.5rem; }
-    .day-header-0 { background-color: #7dd3fc; } .day-header-1 { background-color: #6ee7b7; } .day-header-2 { background-color: #fcd34d; } .day-header-3 { background-color: #fda4af; } .day-header-4 { background-color: #c4b5fd; }
-    .class-card { background-color: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; height: 100%; }
-    .class-card-header .subject { font-size: 1.1rem; font-weight: 700; color: #1f2937; }
-    .task-block { padding: 0.5rem 0.75rem; border-radius: 0.5rem; position: relative; cursor: pointer; transition: transform .2s, box-shadow .2s; }
-    .task-block:hover { transform: translateY(-2px); box-shadow: 0 4px 12px 0 rgba(0,0,0,.08); }
-    .color-pink { background-color: #fce7f3; border-left: 4px solid #ec4899; }
-    .color-green { background-color: #dcfce7; border-left: 4px solid #22c55e; }
-    .color-blue { background-color: #dbeafe; border-left: 4px solid #3b82f6; }
-    .color-purple { background-color: #ede9fe; border-left: 4px solid #8b5cf6; }
-    .color-amber { background-color: #fef3c7; border-left: 4px solid #f59e0b; }
-    .delete-btn { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); color: #9ca3af; opacity: 0; transition: all .2s; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 9999px; }
-    .task-block:hover .delete-btn { opacity: 1; } .delete-btn:hover { color: #ef4444; background-color: #fee2e2; }
-    .add-task-btn { width: 100%; border: 2px dashed #d1d5db; color: #6b7280; padding: 0.5rem; border-radius: 0.5rem; transition: all .2s; font-weight: 500; font-size: .875rem; margin-top: auto; }
-    .add-task-btn:hover { background-color: #f9fafb; border-color: #9ca3af; color: #4b5563; }
-    .modal-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,.5); z-index: 40; display: grid; place-items: center; }
-    .modal-content { background-color: white; padding: 32px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); width: 100%; max-width: 480px; }
-    .hidden { display: none; }
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+    .header-gradient {
+      background: linear-gradient(90deg,#86c1f2 0%,#a288fa 100%);
+    }
+    .day-tab { font-size: 1.15rem; font-weight: 700; }
+    .task-box { min-height: 48px; border: 2px dashed #d1d5db; padding: 10px; border-radius: 12px; background:#fff; transition: box-shadow .2s; }
+    .task-box:focus { outline: 2px solid #6366f1; box-shadow: 0 2px 8px 0 #a5b4fc44; }
+    .subject-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .hour-label { background: #fff; border-radius: 12px; font-weight: 600; font-size: 1.14rem; color: #6366f1; box-shadow: 0 1px 4px #0001; }
+    .tab-lunes { background: #38bdf8; color: #fff;}
+    .tab-martes { background: #34d399; color: #fff;}
+    .tab-miercoles { background: #fde047; color: #a16207;}
+    .tab-jueves { background: #f472b6; color: #fff;}
+    .tab-viernes { background: #a78bfa; color: #fff;}
+    .card-lunes {border:2px solid #38bdf8;}
+    .card-martes {border:2px solid #34d399;}
+    .card-miercoles {border:2px solid #fde047;}
+    .card-jueves {border:2px solid #f472b6;}
+    .card-viernes {border:2px solid #a78bfa;}
   </style>
 </head>
 <body>
-  <!-- Login simple -->
-  <div id="login-container" style="text-align:center; margin:1rem 0;">
-    <button id="google-login-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition duration-300">
-      Iniciar sesión
-    </button>
+  <div class="header-gradient p-6 rounded-b-2xl mb-4 shadow">
+    <h1 class="text-3xl font-extrabold text-center text-white tracking-wide">Semana del 15 al 19 de septiembre de 2025</h1>
   </div>
-  <!-- Tu overlay de carga -->
-  <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;">
-    <span class="font-bold text-2xl">Conectando...</span>
+  <div class="flex justify-center mb-6 gap-3">
+    <div class="day-tab tab-lunes px-6 py-2 rounded-xl shadow">Lunes <sup>15</sup></div>
+    <div class="day-tab tab-martes px-6 py-2 rounded-xl shadow">Martes <sup>16</sup></div>
+    <div class="day-tab tab-miercoles px-6 py-2 rounded-xl shadow">Miércoles <sup>17</sup></div>
+    <div class="day-tab tab-jueves px-6 py-2 rounded-xl shadow">Jueves <sup>18</sup></div>
+    <div class="day-tab tab-viernes px-6 py-2 rounded-xl shadow">Viernes <sup>19</sup></div>
   </div>
-  <!-- El resto de tu HTML de planificación aquí (sin cambios en las clases, cuadrícula, etc). -->
+  <div class="grid grid-cols-6 gap-3 max-w-6xl mx-auto">
+    <div></div>
+    <div class="hour-label text-center py-2">Lunes</div>
+    <div class="hour-label text-center py-2">Martes</div>
+    <div class="hour-label text-center py-2">Miércoles</div>
+    <div class="hour-label text-center py-2">Jueves</div>
+    <div class="hour-label text-center py-2">Viernes</div>
+    
+    <!-- 1ª Hora -->
+    <div class="hour-label flex items-center justify-center h-24">1ª Hora</div>
 
-  <!-- Bloque de Firebase SOLO redirect para github.io -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { initializeAuth, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence, browserPopupRedirectResolver, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Latín 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="lunes" data-hora="1" data-asignatura="latin4"></div>
+    </div>
+    <div class="p-2 card-martes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Latín 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="martes" data-hora="1" data-asignatura="latin4"></div>
+    </div>
+    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Oratoria y Debate 3º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="1" data-asignatura="oratoria"></div>
+    </div>
+    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Oratoria y Debate 3º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="jueves" data-hora="1" data-asignatura="oratoria"></div>
+    </div>
+    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Lengua 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="1" data-asignatura="lengua4"></div>
+    </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCfuJa4U3H2Uo4t1qKxeuJTGym70s8QauQ",
-      authDomain: "planificador-final-app.firebaseapp.com",
-      projectId: "planificador-final-app",
-      storageBucket: "planificador-final-app.appspot.com",
-      messagingSenderId: "1018171067065",
-      appId: "1:1018171067065:web:201a8d7ba1445e73afa968"
-    };
+    <!-- 2ª Hora -->
+    <div class="hour-label flex items-center justify-center h-24">2ª Hora</div>
+    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Lengua 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="lunes" data-hora="2" data-asignatura="lengua4"></div>
+    </div>
+    <div class="p-2 card-martes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Lengua 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="martes" data-hora="2" data-asignatura="lengua4"></div>
+    </div>
+    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Latín 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="2" data-asignatura="latin4"></div>
+    </div>
+    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Latín 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="jueves" data-hora="2" data-asignatura="latin4"></div>
+    </div>
+    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">ATEDU 3º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="2" data-asignatura="atedu3"></div>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = initializeAuth(app, {
-      persistence: [browserLocalPersistence, browserSessionPersistence, inMemoryPersistence],
-      popupRedirectResolver: browserPopupRedirectResolver
-    });
-    const provider = new GoogleAuthProvider();
-    const db = getFirestore(app);
-
-    const loginBtn = document.getElementById("google-login-btn");
-    const loadingOverlay = document.getElementById("loading-overlay");
-
-    // SOLO redirect
-    if (loginBtn) {
-      loginBtn.onclick = () => {
-        loadingOverlay.style.display = "flex";
-        signInWithRedirect(auth, provider);
-      };
-    }
-
-    getRedirectResult(auth)
-      .then(() => { loadingOverlay.style.display = "none"; })
-      .catch((error) => {
-        loadingOverlay.style.display = "none";
-        alert("Error en login (redirect): " + (error && error.message ? error.message : error));
-      });
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        loadingOverlay.style.display = "flex";
-        try {
-          const snap = await getDoc(doc(db, "users", user.uid));
-          if (snap.exists() && snap.data().planner) {
-            for (const [key, value] of Object.entries(snap.data().planner)) {
-              localStorage.setItem(key, JSON.stringify(value));
-            }
-            const goTodayBtn = document.getElementById("go-today");
-            if (goTodayBtn) goTodayBtn.click();
+    <!-- 3ª Hora -->
+    <div class="hour-label flex items-center justify-center h-24">3ª Hora</div>
+    <div class="p-2 card-lunes rounded-xl bg-white flex flex-col"></div>
+    <div class="p-2 card-martes rounded-xl bg-white flex flex-col"></div>
+    <div class="p-2 card-miercoles rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Lengua 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="miercoles" data-hora="3" data-asignatura="lengua4"></div>
+    </div>
+    <div class="p-2 card-jueves rounded-xl bg-white flex flex-col"></div>
+    <div class="p-2 card-viernes rounded-xl bg-white flex flex-col">
+      <div class="subject-title">Lengua 4º ESO</div>
+      <div contenteditable="true" class="task-box editable-cell" data-dia="viernes" data-hora="3" data-asignatura="lengua4"></div>
+    </div>
+  </div>
+  <script>
+    const scriptURL = 
+https://script.google.com/macros/s/AKfycbwJEggeAiGraKBi0M4XegxSXTscID3Qqv2N0-ykDzTpyAt5Uc1JFDIfj4U1uJwbkIpr/exec;
+    async function cargarDatos() {
+      try {
+        const res = await fetch(`${scriptURL}?action=load`);
+        const data = await res.json();
+        data.forEach(item => {
+          const celda = document.querySelector(
+            `[data-dia="${item.dia}"][data-hora="${item.hora}"][data-asignatura="${item.asignatura}"]`
+          );
+          if (celda) {
+            celda.textContent = item.contenido;
           }
-        } catch (e) {
-          console.error("Error leyendo datos:", e);
-        }
-        loadingOverlay.style.display = "none";
-      } else {
-        loadingOverlay.style.display = "none";
+        });
+      } catch (e) {
+        console.error('Error al cargar datos', e);
       }
+    }
+    async function guardarDato(dia, hora, asignatura, contenido) {
+      try {
+        await fetch(
+          `${scriptURL}?action=save&dia=${dia}&hora=${hora}&asignatura=${asignatura}&contenido=${encodeURIComponent(contenido)}`
+        );
+      } catch (e) {
+        console.error('Error al guardar dato', e);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarDatos();
+      const celdas = document.querySelectorAll('.editable-cell');
+      celdas.forEach((celda) => {
+        celda.addEventListener('input', (e) => {
+          const el = e.target;
+          const dia = el.getAttribute('data-dia');
+          const hora = el.getAttribute('data-hora');
+          const asignatura = el.getAttribute('data-asignatura');
+          const contenido = el.textContent;
+          guardarDato(dia, hora, asignatura, contenido);
+        });
+      });
     });
   </script>
 </body>
